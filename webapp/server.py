@@ -15,6 +15,8 @@ from pydantic import BaseModel, Field
 import urllib.request
 import json as _json
 
+from cryptography.fernet import Fernet
+
 from flyzexbot.config import Settings
 from flyzexbot.services.security import EncryptionManager
 from flyzexbot.services.storage import Application, Storage, configure_timezone
@@ -50,35 +52,46 @@ def _normalize_user_id(value: str) -> int | str:
         return value
 
 
+def _compute_cors_origins(settings: Settings | None) -> list[str]:
+    """Build a deterministic list of allowed CORS origins."""
+
+    origins: list[str] = []
+    if settings is not None:
+        webapp_url = settings.webapp.get_url()
+        if webapp_url:
+            origins.append(webapp_url)
+        host = settings.webapp.host or "localhost"
+        port = settings.webapp.port
+        origins.extend(
+            [
+                f"http://{host}:{port}",
+                f"https://{host}:{port}",
+            ]
+        )
+
+    # Common fallbacks for local development / testing
+    origins.extend(
+        [
+            "http://localhost",
+            "http://127.0.0.1",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+        ]
+    )
+
+    return list(dict.fromkeys(origins))
+
+
+try:
+    _initial_settings_for_cors = Settings.load(_resolve_config_path())
+except Exception:
+    _initial_settings_for_cors = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = Settings.load(_resolve_config_path())
-
-    # Configure CORS based on settings
-    origins: list[str] = []
-    webapp_url = settings.webapp.get_url()
-    if webapp_url:
-        origins.append(webapp_url)
-    # Add common local/dev origins
-    host = settings.webapp.host or "localhost"
-    port = settings.webapp.port
-    origins.extend([
-        f"http://{host}:{port}",
-        f"https://{host}:{port}",
-        "http://localhost",
-        "http://127.0.0.1",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-    ])
-    # Deduplicate while preserving order
-    origins = list(dict.fromkeys(origins))
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    app.state.cors_origins = _compute_cors_origins(settings)
 
     # Apply configured timezone for timestamp formatting
     try:
@@ -86,13 +99,26 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    encryption = EncryptionManager(settings.get_secret_key())
+    ephemeral_secret = False
+    try:
+        secret_key = settings.get_secret_key()
+    except RuntimeError:
+        secret_key = Fernet.generate_key()
+        ephemeral_secret = True
+
+    encryption = EncryptionManager(secret_key)
     storage = Storage(
         settings.storage.path,
         encryption,
         backup_path=settings.storage.backup_path,
     )
-    await storage.load()
+    try:
+        await storage.load()
+    except RuntimeError:
+        if not ephemeral_secret:
+            raise
+
+    app.state.uses_ephemeral_secret = ephemeral_secret
 
     app.state.settings = settings
     app.state.storage = storage
@@ -102,7 +128,19 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        await storage.save()
+        if not ephemeral_secret:
+            await storage.save()
+
+
+app = FastAPI(title="FlyzexBot WebApp", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_compute_cors_origins(_initial_settings_for_cors),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
 async def require_admin_api_key(x_admin_api_key: str | None = Header(default=None)) -> None:
@@ -113,9 +151,6 @@ async def require_admin_api_key(x_admin_api_key: str | None = Header(default=Non
     if not x_admin_api_key or x_admin_api_key != env_key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
-
-app = FastAPI(title="FlyzexBot WebApp", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
 async def get_storage(request: Request) -> Storage:
