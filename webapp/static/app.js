@@ -69,6 +69,42 @@ let adminSession = null;
 const adminApiKeyStorageKey = 'flyzexbot-admin-api-key';
 let adminApiKey = null;
 
+const computeApiBasePath = () => {
+  const override = window.__FLYZEXBOT_API_BASE_PATH__;
+  if (typeof override === 'string' && override.trim()) {
+    return override.trim().replace(/\/+$/, '');
+  }
+  try {
+    const baseUrl = new URL('.', window.location.href);
+    let pathname = baseUrl.pathname;
+    if (pathname.endsWith('/')) {
+      pathname = pathname.slice(0, -1);
+    }
+    const basePath = pathname || '';
+    const apiPath = `${basePath}/api`;
+    return apiPath || '/api';
+  } catch (error) {
+    return '/api';
+  }
+};
+
+const joinPaths = (base, segment = '') => {
+  if (!segment) {
+    return base || '/api';
+  }
+  const trimmed = segment.replace(/^\/+/, '');
+  if (!base) {
+    return `/${trimmed}`;
+  }
+  if (base.endsWith('/')) {
+    return `${base}${trimmed}`;
+  }
+  return `${base}/${trimmed}`;
+};
+
+const apiBasePath = computeApiBasePath();
+const apiUrl = (path = '') => joinPaths(apiBasePath, path);
+
 const fetchJSON = async (url, options = {}) => {
   const headers = { Accept: 'application/json', ...(options.headers || {}) };
   if (adminApiKey) {
@@ -293,7 +329,7 @@ const loadDashboardInsights = async () => {
   dashboardStatus.textContent = 'در حال بازیابی آمار...';
   dashboardStatus.classList.remove('error', 'success');
   try {
-    const data = await fetchJSON('/api/applications/insights');
+    const data = await fetchJSON(apiUrl('applications/insights'));
     dashboardPendingCount.textContent = data.pending ?? 0;
     dashboardApprovedCount.textContent = data.status_counts?.approved ?? 0;
     dashboardDeniedCount.textContent = data.status_counts?.denied ?? 0;
@@ -315,7 +351,7 @@ const loadPendingApplications = async () => {
   pendingStatus.classList.remove('error', 'success');
   pendingList.innerHTML = '';
   try {
-    const data = await fetchJSON('/api/applications/pending');
+    const data = await fetchJSON(apiUrl('applications/pending'));
     if (!data.applications?.length) {
       pendingStatus.textContent = 'درخواستی برای بررسی وجود ندارد.';
       return;
@@ -411,7 +447,7 @@ const handleLeaderboardSubmit = async (event) => {
   xpList.innerHTML = '';
 
   try {
-    const data = await fetchJSON(`/api/xp?${params.toString()}`);
+    const data = await fetchJSON(apiUrl(`xp?${params.toString()}`));
     if (!data.leaderboard?.length) {
       xpStatus.textContent = 'هیچ امتیازی ثبت نشده است.';
       return;
@@ -462,7 +498,7 @@ const handleCupsSubmit = async (event) => {
   cupsList.innerHTML = '';
 
   try {
-    const data = await fetchJSON(`/api/cups?${params.toString()}`);
+    const data = await fetchJSON(apiUrl(`cups?${params.toString()}`));
     if (!data.cups?.length) {
       cupsStatus.textContent = 'جامی برای این چت ثبت نشده است.';
       return;
@@ -524,7 +560,7 @@ const loadAnalytics = async () => {
   analyticsContent.innerHTML = '';
 
   try {
-    const data = await fetchJSON('/api/applications/insights');
+    const data = await fetchJSON(apiUrl('applications/insights'));
     analyticsStatus.textContent = 'آخرین وضعیت ثبت شد.';
     analyticsStatus.classList.add('success');
 
@@ -607,7 +643,7 @@ const loadAdmins = async () => {
   adminsList.innerHTML = '';
 
   try {
-    const data = await fetchJSON('/api/admins');
+    const data = await fetchJSON(apiUrl('admins'));
     const admins = data?.admins || [];
     if (!admins.length) {
       adminsStatus.textContent = 'هیچ ادمینی ثبت نشده است.';
@@ -681,7 +717,7 @@ const handleAdminAdd = async (event) => {
   adminAddStatus.classList.remove('error', 'success');
 
   try {
-    const result = await fetchJSON('/api/admins', {
+    const result = await fetchJSON(apiUrl('admins'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -723,7 +759,7 @@ const handleAdminRemove = async (event) => {
   adminRemoveStatus.classList.remove('error', 'success');
 
   try {
-    await fetchJSON(`/api/admins/${encodeURIComponent(parsedUserId)}`, {
+    await fetchJSON(apiUrl(`admins/${encodeURIComponent(parsedUserId)}`), {
       method: 'DELETE',
     });
     adminRemoveStatus.textContent = 'ادمین با موفقیت حذف شد.';
@@ -781,7 +817,7 @@ const handleAdminAuth = async (event) => {
   adminAuthStatus.classList.remove('error', 'success');
 
   try {
-    const data = await fetchJSON(`/api/admins/${encodeURIComponent(parsedUserId)}`);
+    const data = await fetchJSON(apiUrl(`admins/${encodeURIComponent(parsedUserId)}`));
     if (!data?.admin) {
       throw new Error('دسترسی برای شما فعال نیست.');
     }
