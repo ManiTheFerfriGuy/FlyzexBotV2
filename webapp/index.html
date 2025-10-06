@@ -135,6 +135,42 @@
         return item;
       };
 
+      const computeApiBasePath = () => {
+        const override = window.__FLYZEXBOT_API_BASE_PATH__;
+        if (typeof override === 'string' && override.trim()) {
+          return override.trim().replace(/\/+$/, '');
+        }
+        try {
+          const baseUrl = new URL('.', window.location.href);
+          let pathname = baseUrl.pathname;
+          if (pathname.endsWith('/')) {
+            pathname = pathname.slice(0, -1);
+          }
+          const basePath = pathname || '';
+          const apiPath = `${basePath}/api`;
+          return apiPath || '/api';
+        } catch (error) {
+          return '/api';
+        }
+      };
+
+      const joinPaths = (base, segment = '') => {
+        if (!segment) {
+          return base || '/api';
+        }
+        const trimmed = segment.replace(/^\/+/, '');
+        if (!base) {
+          return `/${trimmed}`;
+        }
+        if (base.endsWith('/')) {
+          return `${base}${trimmed}`;
+        }
+        return `${base}/${trimmed}`;
+      };
+
+      const apiBasePath = computeApiBasePath();
+      const apiUrl = (path = '') => joinPaths(apiBasePath, path);
+
       const fetchJSON = async (url) => {
         const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!r.ok) throw new Error((await r.text()) || 'خطا در دریافت داده‌ها');
@@ -144,7 +180,7 @@
       const loadXP = async () => {
         xpStatus.textContent = 'در حال بارگذاری...'; xpList.innerHTML = '';
         try {
-          const data = await fetchJSON('/api/leaderboard/xp/top?limit=10');
+          const data = await fetchJSON(apiUrl('leaderboard/xp/top?limit=10'));
           const items = data.leaderboard || [];
           if (!items.length) { xpStatus.textContent = 'داده‌ای یافت نشد.'; return; }
           xpStatus.textContent = '';
@@ -152,7 +188,7 @@
           for (const e of items) {
             let avatarUrl = null;
             try {
-              const p = await fetchJSON(`/api/profile/${encodeURIComponent(e.user_id)}`);
+              const p = await fetchJSON(apiUrl(`profile/${encodeURIComponent(e.user_id)}`));
               avatarUrl = p.avatar_url || null;
               e.full_name = e.full_name || p.full_name;
               e.username = e.username || p.username;
@@ -168,7 +204,7 @@
       const loadCups = async () => {
         cupsStatus.textContent = 'در حال بارگذاری...'; cupsList.innerHTML = '';
         try {
-          const data = await fetchJSON('/api/leaderboard/cups/top?limit=10');
+          const data = await fetchJSON(apiUrl('leaderboard/cups/top?limit=10'));
           const items = data.leaderboard || [];
           if (!items.length) { cupsStatus.textContent = 'داده‌ای یافت نشد.'; return; }
           cupsStatus.textContent = '';
@@ -176,7 +212,7 @@
           for (const e of items) {
             let avatarUrl = null;
             try {
-              const p = await fetchJSON(`/api/profile/${encodeURIComponent(e.user_id)}`);
+              const p = await fetchJSON(apiUrl(`profile/${encodeURIComponent(e.user_id)}`));
               avatarUrl = p.avatar_url || null;
               e.full_name = e.full_name || p.full_name;
               e.username = e.username || p.username;
