@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Flyzex Leaderboards</title>
+    <link rel="stylesheet" href="static/glass_panel.css" />
+    <style>
+      :root {
+        --ease-spring: cubic-bezier(.2,.8,.2,1);
+        --badge: linear-gradient(135deg, #60a5fa, #38bdf8);
+      }
+      /* Layout */
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main-content { max-width: 1100px; margin-inline: auto; }
+
+      /* Header */
+      .hero { display: grid; gap: .5rem; justify-items: start; animation: fadeIn .5s var(--ease-spring) both; }
+      .switcher { display: grid; grid-auto-flow: column; gap: .5rem; }
+      .switch-btn { border: 1px solid rgba(125,211,252,0.25); background: rgba(148,163,184,0.12); color: inherit; padding: .7rem 1rem; border-radius: 999px; cursor: pointer; font-size: .95rem; transition: transform .2s var(--ease-spring); }
+      .switch-btn:hover { transform: translateY(-1px); }
+      .switch-btn.active { background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(14,165,233,0.22)); }
+
+      /* Cards & animations */
+      .data-card { animation: rise .5s var(--ease-spring) both; }
+      .data-card:nth-of-type(2) { animation-delay: .07s; }
+      .leader-list > li, #cups-list > article { animation: fadeUp .4s var(--ease-spring) both; }
+      .leader-list > li:nth-child(1) { animation-delay: .02s; }
+      .leader-list > li:nth-child(2) { animation-delay: .04s; }
+      .leader-list > li:nth-child(3) { animation-delay: .06s; }
+
+      .leader { display: grid; grid-template-columns: auto auto 1fr auto; gap: .75rem; align-items: center; }
+      .rank { width: 2.25rem; aspect-ratio: 1; border-radius: 999px; display: grid; place-items: center; background: var(--badge); color: #0b1120; font-weight: 700; box-shadow: 0 10px 25px rgba(14,165,233,.2); }
+      .avatar { width: 2.4rem; height: 2.4rem; border-radius: 999px; background: rgba(148,163,184,.18); display: grid; place-items: center; overflow: hidden; box-shadow: 0 4px 18px rgba(14,165,233,.15); }
+      .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .avatar span { font-weight: 700; opacity: .85; }
+      .who { display: grid; gap: .15rem; }
+      .who small { opacity: .8; }
+      .score { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+      /* Keyframes */
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+
+      @media (min-width: 900px) {
+        .leaderboard-grid { grid-template-columns: repeat(2, minmax(340px, 1fr)); }
+      }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+    </style>
+  </head>
+  <body>
+    <div class="app-background">
+      <div class="app-shell" role="application">
+        <main class="main-content" aria-live="polite">
+          <header class="page-header hero">
+            <div>
+              <p id="page-subtitle" class="page-subtitle">ساده، مدرن، مناسب مینی‌اپ تلگرام — با پشتیبانی دسکتاپ</p>
+              <h2 id="page-title" class="page-title">لیدربورد فلیزکس</h2>
+            </div>
+            <nav class="switcher" aria-label="انتخاب لیدربورد">
+              <button id="btn-xp" type="button" class="switch-btn active">لیدربورد XP</button>
+              <button id="btn-cups" type="button" class="switch-btn">لیدربورد جام‌ها</button>
+            </nav>
+          </header>
+
+          <!-- XP Leaderboard -->
+          <section id="route-xp" class="route active" tabindex="-1">
+            <article class="data-card">
+              <header class="card-header">
+                <h3>۱۰ نفر برتر XP</h3>
+                <button type="button" id="xp-refresh" class="icon-button" aria-label="به‌روزرسانی">⟳</button>
+              </header>
+              <ul id="xp-top-list" class="item-list leader-list" aria-live="polite"></ul>
+              <p id="xp-status" class="status-text"></p>
+            </article>
+          </section>
+
+          <!-- Cups Leaderboard -->
+          <section id="route-cups" class="route" tabindex="-1" hidden>
+            <article class="data-card">
+              <header class="card-header">
+                <h3>۱۰ نفر برتر جام‌ها</h3>
+                <button type="button" id="cups-refresh" class="icon-button" aria-label="به‌روزرسانی">⟳</button>
+              </header>
+              <ul id="cups-top-list" class="item-list leader-list" aria-live="polite"></ul>
+              <p id="cups-status" class="status-text"></p>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const $ = (sel) => document.querySelector(sel);
+      const xpList = $('#xp-top-list');
+      const cupsList = $('#cups-top-list');
+      const xpStatus = $('#xp-status');
+      const cupsStatus = $('#cups-status');
+
+      const setActive = (target) => {
+        const xp = $('#route-xp');
+        const cups = $('#route-cups');
+        const bxp = $('#btn-xp');
+        const bc = $('#btn-cups');
+        if (target === 'xp') {
+          xp.removeAttribute('hidden'); xp.classList.add('active');
+          cups.setAttribute('hidden',''); cups.classList.remove('active');
+          bxp.classList.add('active'); bc.classList.remove('active');
+        } else {
+          cups.removeAttribute('hidden'); cups.classList.add('active');
+          xp.setAttribute('hidden',''); xp.classList.remove('active');
+          bc.classList.add('active'); bxp.classList.remove('active');
+        }
+      };
+
+      const li = (rank, fullName, username, userId, value, label, avatarUrl) => {
+        const item = document.createElement('li');
+        item.className = 'leader';
+        const r = document.createElement('span'); r.className = 'rank'; r.textContent = `#${rank}`;
+        const av = document.createElement('div'); av.className = 'avatar';
+        if (avatarUrl) {
+          const img = document.createElement('img'); img.alt = String(fullName || username || userId); img.src = avatarUrl; av.appendChild(img);
+        } else {
+          const initial = (String(fullName || username || 'کاربر').trim()[0] || '؟').toUpperCase();
+          const span = document.createElement('span'); span.textContent = initial; av.appendChild(span);
+        }
+        const who = document.createElement('div'); who.className = 'who';
+        const t = document.createElement('strong'); t.textContent = fullName || username || `کاربر ${userId}`;
+        const sub = document.createElement('small'); sub.textContent = `${username ? '@'+String(username).replace(/^@+/, '') : '—'} · ${userId}`;
+        who.appendChild(t); who.appendChild(sub);
+        const sc = document.createElement('span'); sc.className = 'score'; sc.textContent = `${value} ${label}`;
+        item.appendChild(r); item.appendChild(av); item.appendChild(who); item.appendChild(sc);
+        return item;
+      };
+
+      const fetchJSON = async (url) => {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) throw new Error((await r.text()) || 'خطا در دریافت داده‌ها');
+        return r.json();
+      };
+
+      const loadXP = async () => {
+        xpStatus.textContent = 'در حال بارگذاری...'; xpList.innerHTML = '';
+        try {
+          const data = await fetchJSON('/api/leaderboard/xp/top?limit=10');
+          const items = data.leaderboard || [];
+          if (!items.length) { xpStatus.textContent = 'داده‌ای یافت نشد.'; return; }
+          xpStatus.textContent = '';
+          const frag = document.createDocumentFragment();
+          for (const e of items) {
+            let avatarUrl = null;
+            try {
+              const p = await fetchJSON(`/api/profile/${encodeURIComponent(e.user_id)}`);
+              avatarUrl = p.avatar_url || null;
+              e.full_name = e.full_name || p.full_name;
+              e.username = e.username || p.username;
+            } catch {}
+            frag.appendChild(li(e.rank, e.full_name, e.username, e.user_id, e.xp, 'XP', avatarUrl));
+          }
+          xpList.appendChild(frag);
+        } catch (err) {
+          xpStatus.textContent = `خطا: ${err.message || err}`;
+        }
+      };
+
+      const loadCups = async () => {
+        cupsStatus.textContent = 'در حال بارگذاری...'; cupsList.innerHTML = '';
+        try {
+          const data = await fetchJSON('/api/leaderboard/cups/top?limit=10');
+          const items = data.leaderboard || [];
+          if (!items.length) { cupsStatus.textContent = 'داده‌ای یافت نشد.'; return; }
+          cupsStatus.textContent = '';
+          const frag = document.createDocumentFragment();
+          for (const e of items) {
+            let avatarUrl = null;
+            try {
+              const p = await fetchJSON(`/api/profile/${encodeURIComponent(e.user_id)}`);
+              avatarUrl = p.avatar_url || null;
+              e.full_name = e.full_name || p.full_name;
+              e.username = e.username || p.username;
+            } catch {}
+            frag.appendChild(li(e.rank, e.full_name, e.username, e.user_id, e.cups, 'جام', avatarUrl));
+          }
+          cupsList.appendChild(frag);
+        } catch (err) {
+          cupsStatus.textContent = `خطا: ${err.message || err}`;
+        }
+      };
+
+      $('#btn-xp').addEventListener('click', () => { setActive('xp'); loadXP(); });
+      $('#btn-cups').addEventListener('click', () => { setActive('cups'); loadCups(); });
+      $('#xp-refresh').addEventListener('click', loadXP);
+      $('#cups-refresh').addEventListener('click', loadCups);
+
+      // Initial load
+      setActive('xp');
+      loadXP();
+    </script>
+  </body>
+</html>
