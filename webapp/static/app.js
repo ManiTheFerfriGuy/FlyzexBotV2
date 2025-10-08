@@ -75,10 +75,20 @@ const computeApiBasePath = () => {
     return override.trim().replace(/\/+$/, '');
   }
   try {
-    const baseUrl = new URL('.', window.location.href);
-    let pathname = baseUrl.pathname;
+    let pathname = window.location.pathname || '';
     if (pathname.endsWith('/')) {
       pathname = pathname.slice(0, -1);
+    }
+    if (pathname && pathname !== '/') {
+      const segments = pathname.split('/');
+      const lastSegment = segments[segments.length - 1];
+      if (lastSegment && lastSegment.includes('.')) {
+        segments.pop();
+        pathname = segments.join('/') || '';
+      }
+    }
+    if (pathname === '/') {
+      pathname = '';
     }
     const basePath = pathname || '';
     const apiPath = `${basePath}/api`;
