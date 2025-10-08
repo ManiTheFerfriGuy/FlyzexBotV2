@@ -107,11 +107,24 @@ async def lifespan(app: FastAPI):
         ephemeral_secret = True
 
     encryption = EncryptionManager(secret_key)
+
+    def _disable_persistence_for_ephemeral_secret(active_storage: Storage) -> None:
+        """Prevent disk writes when no persistent secret key is configured."""
+
+        async def _noop(self) -> None:  # noqa: D401 - simple asynchronous no-op
+            return None
+
+        active_storage.load = _noop.__get__(active_storage, Storage)  # type: ignore[assignment]
+        active_storage.save = _noop.__get__(active_storage, Storage)  # type: ignore[assignment]
+        active_storage._backup_path = None  # type: ignore[attr-defined]
+
     storage = Storage(
         settings.storage.path,
         encryption,
         backup_path=settings.storage.backup_path,
     )
+    if ephemeral_secret:
+        _disable_persistence_for_ephemeral_secret(storage)
     try:
         await storage.load()
     except RuntimeError:
