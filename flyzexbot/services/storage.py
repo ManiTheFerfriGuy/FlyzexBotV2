@@ -291,7 +291,7 @@ class Storage:
 
         try:
             payload = json.loads(payload_bytes.decode("utf-8"))
-        except json.JSONDecodeError:
+        except (UnicodeDecodeError, json.JSONDecodeError):
             LOGGER.exception(
                 "storage_load_failed", extra={"path": str(self._path)}
             )
