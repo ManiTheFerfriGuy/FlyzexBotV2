@@ -196,6 +196,44 @@
         .main-content { max-width: 1024px; }
         .switcher { width: min(100%, 420px); }
       }
+      @media (max-width: 768px) {
+        body { padding: clamp(0.65rem, 2.5vw, 1.15rem); }
+        .main-content {
+          padding: clamp(1rem, 3.5vw, 1.45rem);
+          width: 100%;
+        }
+      }
+      @media (max-width: 540px) {
+        body { padding: clamp(0.45rem, 3vw, 0.75rem); }
+        .main-content { padding: clamp(0.85rem, 4vw, 1.2rem); }
+        .data-card { padding: clamp(1.1rem, 4.5vw, 1.45rem); }
+        .switcher { width: 100%; }
+        .leader-list > li.leader {
+          gap: 0.85rem;
+          padding-inline: clamp(0.9rem, 4vw, 1.1rem);
+          grid-template-columns: auto auto 1fr;
+        }
+      }
+      @media (max-width: 420px) {
+        .leader-list > li.leader {
+          grid-template-columns: auto 1fr;
+          grid-template-areas:
+            "rank avatar"
+            "identity identity"
+            "stat stat";
+        }
+        .leader-list > li.leader .rank { grid-area: rank; }
+        .leader-list > li.leader .avatar { grid-area: avatar; }
+        .leader-list > li.leader .identity { grid-area: identity; }
+        .leader-list > li.leader .stat {
+          grid-area: stat;
+          border: none;
+          margin-inline-start: 0;
+          padding-inline-start: 0;
+          justify-items: stretch;
+          text-align: center;
+        }
+      }
       @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
     </style>
   </head>
