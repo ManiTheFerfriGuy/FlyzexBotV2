@@ -56,13 +56,16 @@
       }
       .switch-btn:focus-visible {
         transform: translateY(-1px);
-        outline: 3px solid rgba(148, 163, 184, .65);
-        outline-offset: 2px;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(148, 163, 184, .65);
       }
       .switch-btn.active {
         background: var(--badge);
         color: #0f172a;
         box-shadow: 0 12px 25px rgba(99, 102, 241, .35);
+      }
+      .switch-btn.active:focus-visible {
+        box-shadow: 0 0 0 3px rgba(148, 163, 184, .65), 0 12px 25px rgba(99, 102, 241, .35);
       }
 
       /* Cards & animations */
