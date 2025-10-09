@@ -254,12 +254,23 @@ class Storage:
         self._state = StorageState()
         self._backup_path = backup_path
         self._persistence_enabled = True
+        self._snapshot_signature: tuple[float, int] | None = None
 
     def disable_persistence(self) -> None:
         """Disable load/save operations for ephemeral runtimes."""
 
         self._persistence_enabled = False
         self._backup_path = None
+        self._snapshot_signature = None
+
+    def _compute_snapshot_signature(self) -> tuple[float, int] | None:
+        """Return a tuple describing the on-disk snapshot, if present."""
+
+        try:
+            stat = self._path.stat()
+        except FileNotFoundError:
+            return None
+        return (stat.st_mtime, stat.st_size)
 
     async def load(self) -> None:
         if not self._persistence_enabled:
@@ -267,6 +278,8 @@ class Storage:
 
         if not self._path.exists():
             self._path.parent.mkdir(parents=True, exist_ok=True)
+            self._state = StorageState()
+            self._snapshot_signature = None
             return
 
         async with aioopen(self._path, "rb") as file:
@@ -284,6 +297,7 @@ class Storage:
             return
 
         self._state = StorageState.from_dict(payload)
+        self._snapshot_signature = self._compute_snapshot_signature()
         LOGGER.info("storage_loaded", extra={"path": str(self._path)})
 
     async def save(self) -> None:
@@ -299,6 +313,25 @@ class Storage:
                 LOGGER.exception(
                     "sqlite_backup_failed", extra={"path": str(self._backup_path)}
                 )
+        self._snapshot_signature = self._compute_snapshot_signature()
+
+    async def ensure_latest_snapshot(self) -> None:
+        """Reload state from disk when an updated snapshot is detected."""
+
+        if not self._persistence_enabled:
+            return
+
+        signature = self._compute_snapshot_signature()
+        if signature == self._snapshot_signature:
+            return
+
+        if signature is None:
+            if self._snapshot_signature is not None:
+                self._state = StorageState()
+            self._snapshot_signature = None
+            return
+
+        await self.load()
 
     async def add_admin(
         self,

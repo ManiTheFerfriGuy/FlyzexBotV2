@@ -27,10 +27,11 @@ async def require_admin_api_key(x_admin_api_key: AdminAPIKeyHeader = None) -> No
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
 
-def get_storage(request: Request) -> Storage:
+async def get_storage(request: Request) -> Storage:
     storage = getattr(request.app.state, "storage", None)
     if storage is None:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Storage not initialised.")
+    await storage.ensure_latest_snapshot()
     return storage  # type: ignore[return-value]
 
 
