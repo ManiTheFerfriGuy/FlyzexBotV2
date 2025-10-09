@@ -51,10 +51,13 @@
         letter-spacing: .01em;
         transition: background .25s var(--ease-spring), color .25s var(--ease-spring), transform .2s var(--ease-spring), box-shadow .25s var(--ease-spring);
       }
-      .switch-btn:hover,
+      .switch-btn:hover {
+        transform: translateY(-1px);
+      }
       .switch-btn:focus-visible {
         transform: translateY(-1px);
-        outline: none;
+        outline: 3px solid rgba(148, 163, 184, .65);
+        outline-offset: 2px;
       }
       .switch-btn.active {
         background: var(--badge);
