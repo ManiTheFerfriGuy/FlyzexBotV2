@@ -596,6 +596,12 @@ _TEXT_PACKS: Dict[str, TextPack] = {
 AVAILABLE_LANGUAGE_CODES = tuple(_TEXT_PACKS.keys())
 
 
+def get_default_text_pack() -> TextPack:
+    """Return the text pack for the configured default language."""
+
+    return _TEXT_PACKS[DEFAULT_LANGUAGE_CODE]
+
+
 def normalize_language_code(language_code: str | None) -> str | None:
     if not language_code:
         return None
@@ -610,5 +616,5 @@ def get_text_pack(language_code: str | None) -> TextPack:
     normalised = normalize_language_code(language_code)
     if normalised and normalised in _TEXT_PACKS:
         return _TEXT_PACKS[normalised]
-    return _TEXT_PACKS[DEFAULT_LANGUAGE_CODE]
+    return get_default_text_pack()
 

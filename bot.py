@@ -10,7 +10,7 @@ from telegram.ext import AIORateLimiter, ApplicationBuilder
 from flyzexbot.config import Settings
 from flyzexbot.handlers.dm import DMHandlers
 from flyzexbot.handlers.group import GroupHandlers
-from flyzexbot.localization import PERSIAN_TEXTS
+from flyzexbot.localization import get_default_text_pack
 from flyzexbot.services.analytics import AnalyticsTracker
 from flyzexbot.services.security import RateLimitGuard
 from flyzexbot.services.storage import Storage, configure_timezone
@@ -110,6 +110,8 @@ async def build_application(settings: Settings) -> None:
 
     application.post_init = post_init
 
+    default_texts = get_default_text_pack()
+
     async def error_handler(update, context) -> None:
         logging.getLogger(__name__).error("Exception while handling update", exc_info=context.error)
         await analytics.record("application_error")
@@ -121,7 +123,7 @@ async def build_application(settings: Settings) -> None:
                 try:
                     await context.application.bot.send_message(
                         chat_id=chat_id,
-                        text=PERSIAN_TEXTS.error_generic,
+                        text=default_texts.error_generic,
                     )
                 except Exception as exc:
                     logging.getLogger(__name__).debug("Failed to notify user about error: %s", exc)
