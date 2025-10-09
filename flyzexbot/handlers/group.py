@@ -319,6 +319,10 @@ class GroupHandlers:
             await message.reply_text(texts.dm_admin_only)
             return
 
+        if not self.storage.is_admin(actor.id):
+            await message.reply_text(texts.dm_admin_only)
+            return
+
         target_user = self._resolve_target_from_message(message)
         if target_user is None and context.args:
             fetched = await self._fetch_member(context, chat.id, context.args[0])
