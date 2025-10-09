@@ -271,3 +271,17 @@ def test_disable_persistence_prevents_disk_writes(tmp_path: Path) -> None:
         assert not storage_path.exists()
 
     asyncio.run(runner())
+
+
+def test_load_failure_raises_and_preserves_file(tmp_path: Path) -> None:
+    storage_path = tmp_path / "store.json"
+    storage_path.write_text("not json", encoding="utf-8")
+    storage = Storage(storage_path)
+
+    async def runner() -> None:
+        with pytest.raises(RuntimeError, match="Failed to load storage"):
+            await storage.load()
+
+        assert storage_path.read_text(encoding="utf-8") == "not json"
+
+    asyncio.run(runner())
