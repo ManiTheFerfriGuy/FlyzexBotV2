@@ -101,7 +101,7 @@ class CupsHistoryResponse(BaseModel):
 
 
 class ProfileResponse(BaseModel):
-    user_id: int
+    user_id: Optional[int]
     username: Optional[str]
     full_name: Optional[str]
     avatar_url: Optional[str]

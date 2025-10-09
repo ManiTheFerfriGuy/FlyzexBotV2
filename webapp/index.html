@@ -809,6 +809,39 @@
         }
       };
 
+      const resolveProfileIdentifier = (entry) => {
+        if (!entry) return null;
+        const candidate = entry.user_id;
+        if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+          return String(candidate);
+        }
+        if (typeof candidate === 'string') {
+          const trimmed = candidate.trim();
+          if (trimmed && /^-?\d+$/.test(trimmed)) {
+            return trimmed;
+          }
+        }
+        if (entry.username) {
+          const user = String(entry.username).trim();
+          if (user) {
+            return user;
+          }
+        }
+        return null;
+      };
+
+      const fetchProfileDetails = async (entry) => {
+        const identifier = resolveProfileIdentifier(entry);
+        if (!identifier) {
+          return null;
+        }
+        try {
+          return await fetchJSON(apiUrl(`profile/${encodeURIComponent(identifier)}`));
+        } catch (error) {
+          return null;
+        }
+      };
+
       const checkHealth = async () => {
         try {
           const status = await fetchJSON(apiUrl('health'));
@@ -847,12 +880,12 @@
           const frag = document.createDocumentFragment();
           for (const e of items) {
             let avatarUrl = null;
-            try {
-              const p = await fetchJSON(apiUrl(`profile/${encodeURIComponent(e.user_id)}`));
-              avatarUrl = p.avatar_url || null;
-              e.full_name = e.full_name || p.full_name;
-              e.username = e.username || p.username;
-            } catch {}
+            const profile = await fetchProfileDetails(e);
+            if (profile) {
+              avatarUrl = profile.avatar_url || null;
+              e.full_name = e.full_name || profile.full_name;
+              e.username = e.username || profile.username;
+            }
             frag.appendChild(li(e.rank, e.full_name, e.username, e.user_id, e.xp, 'XP', avatarUrl));
           }
           xpList.appendChild(frag);
@@ -881,12 +914,12 @@
           const frag = document.createDocumentFragment();
           for (const e of items) {
             let avatarUrl = null;
-            try {
-              const p = await fetchJSON(apiUrl(`profile/${encodeURIComponent(e.user_id)}`));
-              avatarUrl = p.avatar_url || null;
-              e.full_name = e.full_name || p.full_name;
-              e.username = e.username || p.username;
-            } catch {}
+            const profile = await fetchProfileDetails(e);
+            if (profile) {
+              avatarUrl = profile.avatar_url || null;
+              e.full_name = e.full_name || profile.full_name;
+              e.username = e.username || profile.username;
+            }
             frag.appendChild(li(e.rank, e.full_name, e.username, e.user_id, e.cups, 'جام', avatarUrl));
           }
           cupsList.appendChild(frag);

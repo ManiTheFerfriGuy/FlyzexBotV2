@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from aiofiles import open as aioopen
 
@@ -450,6 +450,88 @@ class Storage:
             username = username or xp_profile.get("username")
             full_name = full_name or xp_profile.get("full_name")
         return {"username": username, "full_name": full_name}
+
+    def get_profile_by_identifier(
+        self, identifier: object
+    ) -> Tuple[Optional[int], Dict[str, Optional[str]]]:
+        """Resolve a profile using a numeric identifier or username."""
+
+        if isinstance(identifier, int):
+            return identifier, self.get_any_profile(identifier)
+
+        if not isinstance(identifier, str):
+            return None, {"username": None, "full_name": None}
+
+        trimmed = identifier.strip()
+        if not trimmed:
+            return None, {"username": None, "full_name": None}
+
+        try:
+            user_id = int(trimmed)
+        except ValueError:
+            user_id = None
+
+        if user_id is not None:
+            return user_id, self.get_any_profile(user_id)
+
+        return self._resolve_profile_by_username(trimmed)
+
+    def _resolve_profile_by_username(
+        self, username: str
+    ) -> Tuple[Optional[int], Dict[str, Optional[str]]]:
+        normalised = self._normalise_username(username)
+        if not normalised:
+            return None, {"username": None, "full_name": None}
+
+        lookup = normalised.casefold()
+
+        for user_id, profile in self._state.admin_profiles.items():
+            stored = self._normalise_username(profile.get("username"))
+            if stored and stored.casefold() == lookup:
+                data = self.get_any_profile(user_id)
+                if not data.get("username"):
+                    data["username"] = stored
+                return user_id, data
+
+        for user_id, application in self._state.applications.items():
+            stored = self._normalise_username(application.username)
+            if stored and stored.casefold() == lookup:
+                data = self.get_any_profile(user_id)
+                if not data.get("username"):
+                    data["username"] = stored
+                if application.full_name and not data.get("full_name"):
+                    data["full_name"] = application.full_name
+                return user_id, data
+
+        for raw_id, profile in self._state.xp_profiles.items():
+            stored = self._normalise_username(profile.get("username"))
+            if stored and stored.casefold() == lookup:
+                full_name = profile.get("full_name")
+                try:
+                    numeric_id = int(raw_id)
+                except (TypeError, ValueError):
+                    numeric_id = None
+                if numeric_id is not None:
+                    data = self.get_any_profile(numeric_id)
+                    if not data.get("username"):
+                        data["username"] = stored
+                    if full_name and not data.get("full_name"):
+                        data["full_name"] = full_name
+                    return numeric_id, data
+                return None, {"username": stored, "full_name": full_name}
+
+        return None, {"username": normalised, "full_name": None}
+
+    def _normalise_username(self, username: Optional[str]) -> Optional[str]:
+        if not isinstance(username, str):
+            return None
+        trimmed = username.strip()
+        if not trimmed:
+            return None
+        trimmed = trimmed.lstrip("@").strip()
+        if not trimmed:
+            return None
+        return trimmed
 
     def _normalise_language_key(self, language_code: Optional[str]) -> str:
         if language_code is None:
