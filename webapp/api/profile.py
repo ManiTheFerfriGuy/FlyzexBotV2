@@ -9,16 +9,18 @@ from ..models import ProfileResponse
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 
-@router.get("/{user_id}", response_model=ProfileResponse)
+@router.get("/{identifier}", response_model=ProfileResponse)
 async def profile(
-    user_id: int,
+    identifier: str,
     storage: StorageDependency,
     avatars: AvatarServiceDependency,
 ) -> ProfileResponse:
-    profile_data = storage.get_any_profile(user_id)
-    avatar_url = await avatars.get_avatar_url(user_id)
+    resolved_user_id, profile_data = storage.get_profile_by_identifier(identifier)
+    avatar_url = await avatars.get_avatar_url(
+        resolved_user_id, username=profile_data.get("username")
+    )
     return ProfileResponse(
-        user_id=user_id,
+        user_id=resolved_user_id,
         username=profile_data.get("username"),
         full_name=profile_data.get("full_name"),
         avatar_url=avatar_url,

@@ -104,6 +104,33 @@ def test_xp_and_cups(tmp_path: Path) -> None:
     asyncio.run(runner())
 
 
+def test_profile_identifier_lookup(tmp_path: Path) -> None:
+    storage = Storage(tmp_path / "store.json")
+
+    async def runner() -> None:
+        await storage.load()
+
+        await storage.add_admin(101, username="@Founder", full_name="Guild Founder")
+        await storage.add_xp(200, 202, 15, username="@AcePilot", full_name="Ace Pilot")
+
+        user_id, profile = storage.get_profile_by_identifier("101")
+        assert user_id == 101
+        assert profile["username"] == "Founder"
+        assert profile["full_name"] == "Guild Founder"
+
+        user_id_from_username, profile_from_username = storage.get_profile_by_identifier("AcePilot")
+        assert user_id_from_username == 202
+        assert profile_from_username["username"] == "AcePilot"
+        assert profile_from_username["full_name"] == "Ace Pilot"
+
+        missing_id, missing_profile = storage.get_profile_by_identifier("@UnknownUser")
+        assert missing_id is None
+        assert missing_profile["username"] == "UnknownUser"
+        assert missing_profile["full_name"] is None
+
+    asyncio.run(runner())
+
+
 def test_application_question_overrides(tmp_path: Path) -> None:
     storage = Storage(tmp_path / "store.json")
 
