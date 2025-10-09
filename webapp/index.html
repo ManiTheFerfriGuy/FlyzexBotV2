@@ -141,24 +141,29 @@
           return override.trim().replace(/\/+$/, '');
         }
         try {
-          let pathname = window.location.pathname || '';
-          if (pathname.endsWith('/')) {
-            pathname = pathname.slice(0, -1);
+          const { pathname: rawPathname = '' } = window.location || {};
+          const trimmedPath = rawPathname.replace(/\/+$/, '');
+          if (!trimmedPath || trimmedPath === '/') {
+            return '/api';
           }
-          if (pathname && pathname !== '/') {
-            const segments = pathname.split('/');
-            const lastSegment = segments[segments.length - 1];
-            if (lastSegment && lastSegment.includes('.')) {
-              segments.pop();
-              pathname = segments.join('/') || '';
-            }
+
+          const segments = trimmedPath.split('/').filter(Boolean);
+          if (!segments.length) {
+            return '/api';
           }
-          if (pathname === '/') {
-            pathname = '';
+
+          const lastSegment = segments[segments.length - 1];
+          if (lastSegment && lastSegment.includes('.')) {
+            segments.pop();
           }
-          const basePath = pathname || '';
-          const apiPath = `${basePath}/api`;
-          return apiPath || '/api';
+
+          // If the static assets are served from /static, avoid inheriting that prefix for the API calls.
+          if (segments[0] === 'static') {
+            segments.shift();
+          }
+
+          const basePath = segments.length ? `/${segments.join('/')}` : '';
+          return basePath ? `${basePath}/api` : '/api';
         } catch (error) {
           return '/api';
         }
