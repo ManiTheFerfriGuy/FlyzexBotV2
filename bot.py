@@ -45,7 +45,7 @@ async def build_application(settings: Settings) -> None:
     except Exception:
         logging.getLogger(__name__).warning("Failed to apply configured timezone; using default.")
 
-    encryption = EncryptionManager(settings.get_secret_key())
+    encryption = EncryptionManager(settings.get_bot_secret_key())
     storage = Storage(
         settings.storage.path,
         encryption,

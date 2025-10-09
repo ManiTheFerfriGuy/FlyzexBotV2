@@ -119,7 +119,9 @@ class ApplicationInsightsResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str = Field(..., description="Static health indicator.")
     storage_loaded: bool = Field(..., description="Whether the storage backend is initialised.")
-    uses_ephemeral_secret: bool = Field(..., description="Indicates if data persistence is disabled.")
+    storage_read_only: bool = Field(
+        ..., description="Indicates if storage persistence is temporarily disabled."
+    )
 
 
 class DashboardMetricsResponse(BaseModel):

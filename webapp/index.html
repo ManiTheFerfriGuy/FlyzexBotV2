@@ -370,8 +370,8 @@
           if (!status.storage_loaded) {
             healthWarning = 'داده‌ها بارگذاری نشدند. لطفاً سرویس ذخیره‌سازی را بررسی کنید.';
             healthBlocking = true;
-          } else if (status.uses_ephemeral_secret) {
-            healthWarning = 'داده‌های رمزنگاری‌شده در دسترس نیست. متغیر BOT_SECRET_KEY را برای وب‌اپ تنظیم کرده و سرویس را بازراه‌اندازی کنید.';
+          } else if (status.storage_read_only) {
+            healthWarning = 'داده‌های رمزنگاری‌شده در دسترس نیست. متغیر WEBAPP_SECRET_KEY را برای وب‌اپ تنظیم کرده و سرویس را بازراه‌اندازی کنید.';
             healthBlocking = true;
           } else {
             healthWarning = null;
