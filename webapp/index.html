@@ -371,7 +371,7 @@
             healthWarning = 'داده‌ها بارگذاری نشدند. لطفاً سرویس ذخیره‌سازی را بررسی کنید.';
             healthBlocking = true;
           } else if (status.storage_read_only) {
-            healthWarning = 'داده‌های رمزنگاری‌شده در دسترس نیست. متغیر BOT_SECRET_KEY را تنظیم کرده و سرویس را بازراه‌اندازی کنید.';
+            healthWarning = 'ذخیره‌سازی در حالت فقط‌خواندنی است. دسترسی نوشتن یا تنظیمات مسیر را بررسی کنید.';
             healthBlocking = true;
           } else {
             healthWarning = null;

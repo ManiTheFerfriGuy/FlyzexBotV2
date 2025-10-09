@@ -3,26 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import defaultdict, deque
-from typing import Deque, Dict, Optional
-
-from cryptography.fernet import Fernet, InvalidToken
-
-
-class EncryptionManager:
-    def __init__(self, key: bytes) -> None:
-        self._fernet = Fernet(key)
-        self._lock = asyncio.Lock()
-
-    async def encrypt(self, data: bytes) -> bytes:
-        async with self._lock:
-            return self._fernet.encrypt(data)
-
-    async def decrypt(self, token: bytes) -> Optional[bytes]:
-        async with self._lock:
-            try:
-                return self._fernet.decrypt(token)
-            except InvalidToken:
-                return None
+from typing import Deque, Dict
 
 
 class RateLimitGuard:

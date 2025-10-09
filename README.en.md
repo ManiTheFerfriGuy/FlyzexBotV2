@@ -28,7 +28,7 @@ FlyzexBot is a Telegram bot with a glassmorphism-inspired interface that helps g
 - Members can view, but not modify, leaderboards.
 
 ### Security & Reliability
-- Sensitive data encrypted with Fernet.
+- Persistent JSON storage with optional SQLite backups.
 - Rate limiting, logging, and robust exception handling.
 - Unit tests for critical modules.
 
@@ -42,13 +42,13 @@ FlyzexBotV2/
 └─ cachetools/           # Caching helpers used by the bot
 ```
 
-The bot and web application share the encrypted storage layer so that administrators can inspect pending requests and leaderboards without leaving Telegram.
+The bot and web application share the same storage layer so that administrators can inspect pending requests and leaderboards without leaving Telegram.
 
 ## Getting Started
 ### Prerequisites
 - Python 3.10+
 - A Telegram bot token
-- A secure secret key for encrypting persisted data
+- (Optional) An admin API key for the web application
 
 ### Installation
 ```bash
@@ -59,21 +59,14 @@ pip install -r requirements.txt
 1. Copy `config/settings.example.yaml` to `config/settings.yaml` and update the values for your environment.
 2. Set the environment variables:
    - `BOT_TOKEN`: Telegram bot token
-   - `BOT_SECRET_KEY`: secret key used for Fernet encryption (shared by the bot and web app)
+   - `ADMIN_API_KEY`: token required to access the admin-only HTTP endpoints
 
 ## Running the Bot
 ```bash
 python bot.py
 ```
 
-Make sure `BOT_SECRET_KEY` remains constant whenever you interact with encrypted data so both the bot and web app can decrypt existing storage.
-
-> **Tip:** the encrypted storage is written to the path configured in
-> `config/settings.yaml` (defaults to `data/storage.json.enc`). Generate the
-> key once, store it in a safe place, and reuse it for every future run. If
-> the bot fails to start with `Failed to decrypt storage file. Check the
-> secret key.`, it means the existing storage was encrypted with a different
-> key—restore the original key or remove the storage file to start fresh.
+The storage file defined in `config/settings.yaml` (defaults to `data/storage.json`) is a UTF-8 JSON document that can be inspected with any text editor.
 
 ## Running the Admin WebApp
 The repository ships with a FastAPI application that exposes pending applications, XP leaderboard, and cup leaderboard.
@@ -88,8 +81,7 @@ The repository ships with a FastAPI application that exposes pending application
    # Terminal 2
    uvicorn webapp.server:app --host 0.0.0.0 --port 8080
    ```
-4. Ensure `BOT_SECRET_KEY` is configured—the web app automatically reuses the bot secret to decrypt the storage written by the bot.
-5. For production deployments place the web app behind a reverse proxy (e.g., Nginx) and limit access with authentication or network policies.
+4. For production deployments place the web app behind a reverse proxy (e.g., Nginx) and limit access with authentication or network policies.
 
 The default web UI (`webapp/index.html`) offers quick links to:
 - `/api/applications/pending`
@@ -106,7 +98,7 @@ pytest
 ## Deployment Tips
 - Consider platforms such as Heroku, AWS, or DigitalOcean for hosting.
 - Configure environment variables and set up CI/CD to automate updates.
-- Keep your encryption key secret and rotate it securely if necessary.
+- Protect the admin API key and rotate it securely if necessary.
 
 ## Project Structure
 ```
