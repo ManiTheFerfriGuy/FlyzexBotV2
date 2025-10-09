@@ -181,10 +181,72 @@
       const apiBasePath = computeApiBasePath();
       const apiUrl = (path = '') => joinPaths(apiBasePath, path);
 
+      const sanitizeMessage = (text) => {
+        if (!text) return '';
+        const withoutTags = text.replace(/<[^>]+>/g, ' ');
+        const condensed = withoutTags.replace(/\s+/g, ' ').trim();
+        if (condensed.length > 160) {
+          return `${condensed.slice(0, 160)}…`;
+        }
+        return condensed;
+      };
+
+      const readErrorMessage = async (response, contentType) => {
+        if (contentType.includes('application/json')) {
+          try {
+            const data = await response.json();
+            return (
+              data?.detail ||
+              data?.message ||
+              data?.error ||
+              data?.status_text ||
+              `خطای ${response.status || ''}`.trim()
+            );
+          } catch (error) {
+            // Fall through to generic handling when JSON parsing fails
+          }
+        }
+        try {
+          const text = await response.text();
+          const sanitized = sanitizeMessage(text);
+          if (sanitized) {
+            return sanitized;
+          }
+        } catch (error) {
+          // Ignore body read errors and fall back to a generic message
+        }
+        if (response.status === 404) {
+          return 'موردی یافت نشد.';
+        }
+        if (response.status) {
+          return `خطای ${response.status}`;
+        }
+        return 'خطای ناشناخته در دریافت داده‌ها';
+      };
+
       const fetchJSON = async (url) => {
-        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!r.ok) throw new Error((await r.text()) || 'خطا در دریافت داده‌ها');
-        return r.json();
+        let response;
+        try {
+          response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        } catch (error) {
+          throw new Error('اتصال به سرور برقرار نشد. لطفاً دوباره تلاش کنید.');
+        }
+
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        if (!response.ok) {
+          const message = await readErrorMessage(response, contentType);
+          throw new Error(message || 'خطا در دریافت داده‌ها');
+        }
+
+        if (!contentType.includes('application/json')) {
+          throw new Error('پاسخ نامعتبر از سرور دریافت شد.');
+        }
+
+        try {
+          return await response.json();
+        } catch (error) {
+          throw new Error('امکان پردازش پاسخ سرور وجود ندارد.');
+        }
       };
 
       const loadXP = async () => {
