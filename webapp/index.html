@@ -180,6 +180,35 @@
       const xpStatus = $('#xp-status');
       const cupsStatus = $('#cups-status');
 
+      let healthWarning = null;
+      let healthBlocking = false;
+
+      const clearStatus = (element) => {
+        if (!element) return;
+        element.classList.remove('error', 'success', 'warning');
+      };
+
+      const applyHealthWarning = () => {
+        if (!healthWarning) {
+          if (xpStatus) clearStatus(xpStatus);
+          if (cupsStatus) clearStatus(cupsStatus);
+          return false;
+        }
+        if (xpList) xpList.innerHTML = '';
+        if (cupsList) cupsList.innerHTML = '';
+        if (xpStatus) {
+          clearStatus(xpStatus);
+          xpStatus.textContent = healthWarning;
+          xpStatus.classList.add('warning');
+        }
+        if (cupsStatus) {
+          clearStatus(cupsStatus);
+          cupsStatus.textContent = healthWarning;
+          cupsStatus.classList.add('warning');
+        }
+        return true;
+      };
+
       const setActive = (target) => {
         const xp = $('#route-xp');
         const cups = $('#route-cups');
@@ -335,7 +364,33 @@
         }
       };
 
+      const checkHealth = async () => {
+        try {
+          const status = await fetchJSON(apiUrl('health'));
+          if (!status.storage_loaded) {
+            healthWarning = 'داده‌ها بارگذاری نشدند. لطفاً سرویس ذخیره‌سازی را بررسی کنید.';
+            healthBlocking = true;
+          } else if (status.uses_ephemeral_secret) {
+            healthWarning = 'داده‌های رمزنگاری‌شده در دسترس نیست. متغیر BOT_SECRET_KEY را برای وب‌اپ تنظیم کرده و سرویس را بازراه‌اندازی کنید.';
+            healthBlocking = true;
+          } else {
+            healthWarning = null;
+            healthBlocking = false;
+          }
+        } catch (error) {
+          healthWarning = `خطا در بررسی وضعیت سرویس: ${error.message || error}`;
+          healthBlocking = false;
+        }
+        applyHealthWarning();
+      };
+
       const loadXP = async () => {
+        if (healthWarning) {
+          if (applyHealthWarning() && healthBlocking) {
+            return;
+          }
+        }
+        clearStatus(xpStatus);
         xpStatus.textContent = 'در حال بارگذاری...'; xpList.innerHTML = '';
         try {
           const data = await fetchJSON(apiUrl('leaderboard/xp/top?limit=10'));
@@ -356,10 +411,17 @@
           xpList.appendChild(frag);
         } catch (err) {
           xpStatus.textContent = `خطا: ${err.message || err}`;
+          xpStatus.classList.add('error');
         }
       };
 
       const loadCups = async () => {
+        if (healthWarning) {
+          if (applyHealthWarning() && healthBlocking) {
+            return;
+          }
+        }
+        clearStatus(cupsStatus);
         cupsStatus.textContent = 'در حال بارگذاری...'; cupsList.innerHTML = '';
         try {
           const data = await fetchJSON(apiUrl('leaderboard/cups/top?limit=10'));
@@ -380,6 +442,7 @@
           cupsList.appendChild(frag);
         } catch (err) {
           cupsStatus.textContent = `خطا: ${err.message || err}`;
+          cupsStatus.classList.add('error');
         }
       };
 
@@ -388,9 +451,15 @@
       $('#xp-refresh').addEventListener('click', loadXP);
       $('#cups-refresh').addEventListener('click', loadCups);
 
-      // Initial load
-      setActive('xp');
-      loadXP();
+      const init = async () => {
+        setActive('xp');
+        await checkHealth();
+        if (!healthWarning) {
+          await loadXP();
+        }
+      };
+
+      init();
     </script>
   </body>
 </html>
