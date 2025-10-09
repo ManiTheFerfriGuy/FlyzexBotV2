@@ -575,6 +575,7 @@
           const items = data.leaderboard || [];
           if (!items.length) { xpStatus.textContent = 'فعلاً آماری برای نمایش نداریم.'; xpList.innerHTML = ''; return; }
           xpStatus.textContent = '';
+          xpList.innerHTML = '';
           const frag = document.createDocumentFragment();
           for (const e of items) {
             let avatarUrl = null;
@@ -608,6 +609,7 @@
           const items = data.leaderboard || [];
           if (!items.length) { cupsStatus.textContent = 'اینجا هنوز جامی ثبت نشده.'; cupsList.innerHTML = ''; return; }
           cupsStatus.textContent = '';
+          cupsList.innerHTML = '';
           const frag = document.createDocumentFragment();
           for (const e of items) {
             let avatarUrl = null;
