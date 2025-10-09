@@ -11,9 +11,9 @@ router = APIRouter(tags=["health"])
 @router.get("/api/health", response_model=HealthResponse)
 async def health(request: Request) -> HealthResponse:
     storage_loaded = getattr(request.app.state, "storage", None) is not None
-    uses_ephemeral_secret = bool(getattr(request.app.state, "uses_ephemeral_secret", False))
+    storage_read_only = bool(getattr(request.app.state, "storage_read_only", False))
     return HealthResponse(
         status="ok",
         storage_loaded=storage_loaded,
-        uses_ephemeral_secret=uses_ephemeral_secret,
+        storage_read_only=storage_read_only,
     )

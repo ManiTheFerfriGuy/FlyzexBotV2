@@ -134,7 +134,7 @@ Separation of concerns:
 - Setup
   - `pip install -r requirements.txt`
   - Copy `config/settings.example.yaml` to `config/settings.yaml` and adjust.
-  - Set environment variables: `BOT_TOKEN` (or custom per `telegram.bot_token_env`) and `BOT_SECRET_KEY` (or `telegram.secret_key_env`).
+  - Set environment variables: `BOT_TOKEN` (or custom per `telegram.bot_token_env`), `BOT_SECRET_KEY` (or `telegram.secret_key_env`), and `WEBAPP_SECRET_KEY` (or `webapp.secret_key_env`). Use the same value for both secret keys so the bot and web app can share encrypted data.
   - Run bot: `python bot.py`
   - Run webapp: `uvicorn webapp.server:app --host 0.0.0.0 --port 8080`
   - Tests: `pytest`

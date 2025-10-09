@@ -20,5 +20,6 @@ webapp:
   host: 0.0.0.0
   port: 8080
   url: https://example.com/flyzex
+  secret_key_env: WEBAPP_SECRET_KEY
 system:
   timezone: UTC+03:30

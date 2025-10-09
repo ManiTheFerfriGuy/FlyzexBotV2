@@ -59,14 +59,15 @@ pip install -r requirements.txt
 1. Copy `config/settings.example.yaml` to `config/settings.yaml` and update the values for your environment.
 2. Set the environment variables:
    - `BOT_TOKEN`: Telegram bot token
-   - `BOT_SECRET_KEY`: secret key used for Fernet encryption
+   - `BOT_SECRET_KEY`: secret key used for Fernet encryption in the bot process
+   - `WEBAPP_SECRET_KEY`: secret key used for Fernet encryption in the web app
 
 ## Running the Bot
 ```bash
 python bot.py
 ```
 
-Make sure the same `BOT_SECRET_KEY` value is supplied whenever you interact with encrypted data.
+Make sure the same value is provided for both `BOT_SECRET_KEY` and `WEBAPP_SECRET_KEY` whenever you interact with encrypted data.
 
 ## Running the Admin WebApp
 The repository ships with a FastAPI application that exposes pending applications, XP leaderboard, and cup leaderboard.
@@ -81,7 +82,7 @@ The repository ships with a FastAPI application that exposes pending application
    # Terminal 2
    uvicorn webapp.server:app --host 0.0.0.0 --port 8080
    ```
-4. Provide the same `BOT_SECRET_KEY` to both processes so the web app can decrypt the storage.
+4. Provide identical values for `BOT_SECRET_KEY` and `WEBAPP_SECRET_KEY` so the web app can decrypt the storage written by the bot.
 5. For production deployments place the web app behind a reverse proxy (e.g., Nginx) and limit access with authentication or network policies.
 
 The default web UI (`webapp/index.html`) offers quick links to:

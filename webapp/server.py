@@ -149,12 +149,12 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    ephemeral_secret = False
+    storage_read_only = False
     try:
-        secret_key = settings.get_secret_key()
+        secret_key = settings.get_webapp_secret_key()
     except RuntimeError:
         secret_key = Fernet.generate_key()
-        ephemeral_secret = True
+        storage_read_only = True
 
     encryption = EncryptionManager(secret_key)
 
@@ -163,18 +163,18 @@ async def lifespan(app: FastAPI):
         encryption,
         backup_path=settings.storage.backup_path,
     )
-    if ephemeral_secret:
+    if storage_read_only:
         storage.disable_persistence()
     try:
         await storage.load()
     except RuntimeError:
-        if not ephemeral_secret:
+        if not storage_read_only:
             raise
 
     bot_token = os.getenv(settings.telegram.bot_token_env)
     avatar_service = AvatarService(bot_token)
 
-    app.state.uses_ephemeral_secret = ephemeral_secret
+    app.state.storage_read_only = storage_read_only
     app.state.settings = settings
     app.state.storage = storage
     app.state.avatar_service = avatar_service
@@ -183,7 +183,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await avatar_service.close()
-        if not ephemeral_secret:
+        if not storage_read_only:
             await storage.save()
 
 
