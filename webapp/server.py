@@ -147,15 +147,36 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    encryption: EncryptionManager | None = None
+    storage_read_only = False
+    secret_key_value = os.getenv(settings.telegram.secret_key_env)
+    storage_path_suffix = settings.storage.path.suffix.lower()
+    requires_secret = storage_path_suffix in {".enc", ".encrypted"}
+
+    if secret_key_value:
+        try:
+            encryption = EncryptionManager(secret_key_value.encode("utf-8"))
+        except Exception:
+            encryption = None
+            if requires_secret:
+                storage_read_only = True
+    elif requires_secret:
+        storage_read_only = True
+
     storage = Storage(
         settings.storage.path,
         None,
         backup_path=settings.storage.backup_path,
     )
+
+    if storage_read_only:
+        storage.disable_persistence()
+
     try:
         await storage.load()
     except RuntimeError:
-        pass
+        storage_read_only = True
+        storage.disable_persistence()
 
     bot_token = os.getenv(settings.telegram.bot_token_env)
     avatar_service = AvatarService(bot_token)
@@ -169,7 +190,8 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await avatar_service.close()
-        await storage.save()
+        if not app.state.storage_read_only:
+            await storage.save()
 
 
 app = FastAPI(title="FlyzexBot WebApp", lifespan=lifespan)

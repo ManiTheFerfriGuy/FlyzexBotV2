@@ -289,7 +289,14 @@ class Storage:
         else:
             payload_bytes = encrypted
 
-        payload = json.loads(payload_bytes.decode("utf-8"))
+        try:
+            payload = json.loads(payload_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            LOGGER.exception(
+                "storage_load_failed", extra={"path": str(self._path)}
+            )
+            return
+
         self._state = StorageState.from_dict(payload)
         LOGGER.info("storage_loaded", extra={"path": str(self._path)})
 
