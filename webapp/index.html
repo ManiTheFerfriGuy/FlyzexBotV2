@@ -137,12 +137,12 @@
         <main class="main-content" aria-live="polite">
           <header class="page-header hero">
             <div>
-              <p id="page-subtitle" class="page-subtitle">ساده، مدرن، مناسب مینی‌اپ تلگرام — با پشتیبانی دسکتاپ</p>
+              <p id="page-subtitle" class="page-subtitle">همه آمار گیلد یک‌جا و دوستانه؛ برای مینی‌اپ تلگرام و دسکتاپ</p>
               <h2 id="page-title" class="page-title">لیدربورد فلایزکس</h2>
             </div>
             <nav class="switcher" aria-label="انتخاب لیدربورد">
-              <button id="btn-xp" type="button" class="switch-btn active">لیدربورد XP</button>
-              <button id="btn-cups" type="button" class="switch-btn">لیدربورد جام‌ها</button>
+              <button id="btn-xp" type="button" class="switch-btn active">برترین‌های XP</button>
+              <button id="btn-cups" type="button" class="switch-btn">برترین‌های جام</button>
             </nav>
           </header>
 
@@ -150,8 +150,8 @@
           <section id="route-xp" class="route active" tabindex="-1">
             <article class="data-card">
               <header class="card-header">
-                <h3>۱۰ نفر برتر XP</h3>
-                <button type="button" id="xp-refresh" class="icon-button" aria-label="به‌روزرسانی">⟳</button>
+                <h3>۱۰ قهرمان برتر XP</h3>
+                <button type="button" id="xp-refresh" class="icon-button" aria-label="تازه کن">⟳</button>
               </header>
               <ul id="xp-top-list" class="item-list leader-list" aria-live="polite"></ul>
               <p id="xp-status" class="status-text"></p>
@@ -162,8 +162,8 @@
           <section id="route-cups" class="route" tabindex="-1" hidden>
             <article class="data-card">
               <header class="card-header">
-                <h3>۱۰ نفر برتر جام‌ها</h3>
-                <button type="button" id="cups-refresh" class="icon-button" aria-label="به‌روزرسانی">⟳</button>
+                <h3>۱۰ قهرمان برتر جام</h3>
+                <button type="button" id="cups-refresh" class="icon-button" aria-label="تازه کن">⟳</button>
               </header>
               <ul id="cups-top-list" class="item-list leader-list" aria-live="polite"></ul>
               <p id="cups-status" class="status-text"></p>
@@ -331,12 +331,12 @@
           // Ignore body read errors and fall back to a generic message
         }
         if (response.status === 404) {
-          return 'موردی یافت نشد.';
+          return 'چیزی برای نمایش پیدا نشد.';
         }
         if (response.status) {
-          return `خطای ${response.status}`;
+          return `کد خطا: ${response.status}`;
         }
-        return 'خطای ناشناخته در دریافت داده‌ها';
+        return 'در دریافت داده‌ها به مشکل خوردیم.';
       };
 
       const fetchJSON = async (url) => {
@@ -344,23 +344,23 @@
         try {
           response = await fetch(url, { headers: { 'Accept': 'application/json' } });
         } catch (error) {
-          throw new Error('اتصال به سرور برقرار نشد. لطفاً دوباره تلاش کنید.');
+          throw new Error('اتصال برقرار نشد؛ لطفاً کمی بعد دوباره امتحان کن.');
         }
 
         const contentType = String(response.headers.get('content-type') || '').toLowerCase();
         if (!response.ok) {
           const message = await readErrorMessage(response, contentType);
-          throw new Error(message || 'خطا در دریافت داده‌ها');
+          throw new Error(message || 'در گرفتن داده‌ها به مشکل خوردیم.');
         }
 
         if (!contentType.includes('application/json')) {
-          throw new Error('پاسخ نامعتبر از سرور دریافت شد.');
+          throw new Error('پاسخی که گرفتیم قابل خواندن نبود.');
         }
 
         try {
           return await response.json();
         } catch (error) {
-          throw new Error('امکان پردازش پاسخ سرور وجود ندارد.');
+          throw new Error('نتوانستیم پاسخ سرور را پردازش کنیم.');
         }
       };
 
@@ -368,17 +368,17 @@
         try {
           const status = await fetchJSON(apiUrl('health'));
           if (!status.storage_loaded) {
-            healthWarning = 'داده‌ها بارگذاری نشدند. لطفاً سرویس ذخیره‌سازی را بررسی کنید.';
+            healthWarning = 'داده‌ها بالا نمی‌آیند؛ لطفاً وضعیت سرویس ذخیره‌سازی را چک کنید.';
             healthBlocking = true;
           } else if (status.storage_read_only) {
-            healthWarning = 'ذخیره‌سازی در حالت فقط‌خواندنی است. دسترسی نوشتن یا تنظیمات مسیر را بررسی کنید.';
+            healthWarning = 'ذخیره‌سازی فقط خواندنی شده؛ تنظیمات مسیر یا دسترسی نوشتن را بررسی کنید.';
             healthBlocking = true;
           } else {
             healthWarning = null;
             healthBlocking = false;
           }
         } catch (error) {
-          healthWarning = `خطا در بررسی وضعیت سرویس: ${error.message || error}`;
+          healthWarning = `نشد وضعیت سرویس را بگیریم: ${error.message || error}`;
           healthBlocking = false;
         }
         applyHealthWarning();
@@ -391,11 +391,11 @@
           }
         }
         clearStatus(xpStatus);
-        xpStatus.textContent = 'در حال بارگذاری...'; xpList.innerHTML = '';
+        xpStatus.textContent = 'در حال آماده‌سازی لیست...'; xpList.innerHTML = '';
         try {
           const data = await fetchJSON(apiUrl('leaderboard/xp/top?limit=10'));
           const items = data.leaderboard || [];
-          if (!items.length) { xpStatus.textContent = 'داده‌ای یافت نشد.'; return; }
+          if (!items.length) { xpStatus.textContent = 'فعلاً آماری برای نمایش نداریم.'; return; }
           xpStatus.textContent = '';
           const frag = document.createDocumentFragment();
           for (const e of items) {
@@ -410,7 +410,7 @@
           }
           xpList.appendChild(frag);
         } catch (err) {
-          xpStatus.textContent = `خطا: ${err.message || err}`;
+          xpStatus.textContent = `مشکلی پیش اومد: ${err.message || err}`;
           xpStatus.classList.add('error');
         }
       };
@@ -422,11 +422,11 @@
           }
         }
         clearStatus(cupsStatus);
-        cupsStatus.textContent = 'در حال بارگذاری...'; cupsList.innerHTML = '';
+        cupsStatus.textContent = 'در حال آماده‌سازی لیست...'; cupsList.innerHTML = '';
         try {
           const data = await fetchJSON(apiUrl('leaderboard/cups/top?limit=10'));
           const items = data.leaderboard || [];
-          if (!items.length) { cupsStatus.textContent = 'داده‌ای یافت نشد.'; return; }
+          if (!items.length) { cupsStatus.textContent = 'اینجا هنوز جامی ثبت نشده.'; return; }
           cupsStatus.textContent = '';
           const frag = document.createDocumentFragment();
           for (const e of items) {
@@ -441,7 +441,7 @@
           }
           cupsList.appendChild(frag);
         } catch (err) {
-          cupsStatus.textContent = `خطا: ${err.message || err}`;
+          cupsStatus.textContent = `مشکلی پیش اومد: ${err.message || err}`;
           cupsStatus.classList.add('error');
         }
       };

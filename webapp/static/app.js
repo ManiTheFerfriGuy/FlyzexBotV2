@@ -136,7 +136,7 @@ const fetchJSON = async (url, options = {}) => {
         message = '';
       }
     }
-    throw new Error(message || 'خطای غیرمنتظره رخ داده است');
+    throw new Error(message || 'یک مشکل غیرمنتظره پیش اومد.');
   }
   if (response.status === 204) {
     return null;
@@ -214,7 +214,7 @@ const setAdminSession = (session) => {
     adminGate?.setAttribute('hidden', '');
     adminPanel?.removeAttribute('hidden');
   } else {
-    adminSessionLabel.textContent = 'دسترسی فعال';
+    adminSessionLabel.textContent = 'دسترسی فعال نشده';
     adminPanel?.setAttribute('hidden', '');
     adminGate?.removeAttribute('hidden');
   }
@@ -224,7 +224,7 @@ const clearAdminSession = () => {
   setAdminSession(null);
   setAdminApiKey(null);
   if (adminAuthStatus) {
-    adminAuthStatus.textContent = 'تنها ادمین‌های ثبت شده قادر به مشاهده این بخش هستند.';
+    adminAuthStatus.textContent = 'این بخش مخصوص ادمین‌هاست؛ اگر یکی از اعضای تیم هستی، اطلاعاتت رو وارد کن.';
     adminAuthStatus.classList.remove('error', 'success');
   }
   if (adminAuthForm) {
@@ -260,24 +260,24 @@ const renderRecentUpdates = (updates) => {
 const updatePageMetadata = (route) => {
   switch (route) {
     case 'applications':
-      pageTitle.textContent = 'مدیریت درخواست‌های عضویت';
-      pageSubtitle.textContent = 'بررسی سریع متقاضیان تازه وارد';
+      pageTitle.textContent = 'بررسی درخواست‌های تازه';
+      pageSubtitle.textContent = 'نگاهی صمیمی به تازه‌واردهای گیلد';
       break;
     case 'competitions':
-      pageTitle.textContent = 'مسابقات و لیدربورد';
-      pageSubtitle.textContent = 'ابزار مدیریت XP و آرشیو جام‌ها';
+      pageTitle.textContent = 'لیدربورد و جام‌ها';
+      pageSubtitle.textContent = 'همه ابزارهای XP و جام کنار هم';
       break;
     case 'analytics':
-      pageTitle.textContent = 'گزارش مدیریتی';
-      pageSubtitle.textContent = 'شاخص‌های کلیدی عملکرد برای تصمیم‌گیری';
+      pageTitle.textContent = 'گزارش‌های مدیریتی';
+      pageSubtitle.textContent = 'آمار کلیدی برای تصمیم‌گیری راحت‌تر';
       break;
     case 'admin':
-      pageTitle.textContent = 'پنل اختصاصی ادمین';
-      pageSubtitle.textContent = 'دسترسی محدود برای مدیریت مدیران ربات';
+      pageTitle.textContent = 'بخش مخصوص ادمین‌ها';
+      pageSubtitle.textContent = 'ابزارهای مربوط به تیم مدیریتی ربات';
       break;
     default:
       pageTitle.textContent = 'داشبورد لحظه‌ای';
-      pageSubtitle.textContent = 'دید کلی از وضعیت ربات';
+      pageSubtitle.textContent = 'نمای کلی از حال و هوای ربات';
   }
 };
 
@@ -336,7 +336,7 @@ const handleRouteEntry = (route) => {
 };
 
 const loadDashboardInsights = async () => {
-  dashboardStatus.textContent = 'در حال بازیابی آمار...';
+  dashboardStatus.textContent = 'در حال آماده‌سازی آمار...';
   dashboardStatus.classList.remove('error', 'success');
   try {
     const data = await fetchJSON(apiUrl('applications/insights'));
@@ -346,28 +346,28 @@ const loadDashboardInsights = async () => {
     dashboardTotalCount.textContent = data.total ?? 0;
     const answerLength = Number(data.average_pending_answer_length ?? 0).toFixed(1);
     dashboardAnswerLength.textContent = answerLength;
-    dashboardStatus.textContent = 'آخرین وضعیت ذخیره شد.';
+    dashboardStatus.textContent = 'آمار تازه ذخیره شد.';
     dashboardStatus.classList.add('success');
     renderRecentUpdates(data.recent_updates || []);
   } catch (error) {
-    dashboardStatus.textContent = `خطا در دریافت آمار: ${error.message}`;
+    dashboardStatus.textContent = `مشکلی در دریافت آمار پیش اومد: ${error.message}`;
     dashboardStatus.classList.add('error');
     renderRecentUpdates([]);
   }
 };
 
 const loadPendingApplications = async () => {
-  pendingStatus.textContent = 'در حال بارگذاری درخواست‌ها...';
+  pendingStatus.textContent = 'در حال جمع‌آوری درخواست‌ها...';
   pendingStatus.classList.remove('error', 'success');
   pendingList.innerHTML = '';
   try {
     const data = await fetchJSON(apiUrl('applications/pending'));
     if (!data.applications?.length) {
-      pendingStatus.textContent = 'درخواستی برای بررسی وجود ندارد.';
+      pendingStatus.textContent = 'فعلاً درخواستی برای بررسی نداریم.';
       return;
     }
 
-    pendingStatus.textContent = `تعداد ${data.total} درخواست در صف بررسی است.`;
+    pendingStatus.textContent = `${data.total} درخواست منتظر بررسی شماست.`;
     const fragment = document.createDocumentFragment();
     data.applications.forEach((application) => {
       const item = document.createElement('li');
@@ -430,7 +430,7 @@ const loadPendingApplications = async () => {
     });
     pendingList.appendChild(fragment);
   } catch (error) {
-    pendingStatus.textContent = `خطا در دریافت درخواست‌ها: ${error.message}`;
+    pendingStatus.textContent = `نتوانستیم درخواست‌ها را بگیریم: ${error.message}`;
     pendingStatus.classList.add('error');
   }
 };
@@ -441,7 +441,7 @@ const handleLeaderboardSubmit = async (event) => {
 
   const chatId = xpChatInput.value.trim();
   if (!chatId) {
-    xpStatus.textContent = 'لطفاً شناسه چت را وارد کنید.';
+    xpStatus.textContent = 'لطفاً شناسه چت رو بنویس.';
     xpStatus.classList.add('error');
     return;
   }
@@ -452,18 +452,18 @@ const handleLeaderboardSubmit = async (event) => {
     params.set('limit', limit);
   }
 
-  xpStatus.textContent = 'در حال بارگذاری لیدربورد...';
+  xpStatus.textContent = 'داریم لیدربورد رو آماده می‌کنیم...';
   xpStatus.classList.remove('error', 'success');
   xpList.innerHTML = '';
 
   try {
     const data = await fetchJSON(apiUrl(`xp?${params.toString()}`));
     if (!data.leaderboard?.length) {
-      xpStatus.textContent = 'هیچ امتیازی ثبت نشده است.';
+      xpStatus.textContent = 'هنوز امتیازی ثبت نشده.';
       return;
     }
 
-    xpStatus.textContent = `نمایش ${data.leaderboard.length} نفر برتر برای چت ${data.chat_id}.`;
+    xpStatus.textContent = `این هم ${data.leaderboard.length} نفر برتر برای چت ${data.chat_id}.`;
     xpStatus.classList.add('success');
     data.leaderboard.forEach((entry, index) => {
       const item = document.createElement('li');
@@ -481,7 +481,7 @@ const handleLeaderboardSubmit = async (event) => {
       xpList.appendChild(item);
     });
   } catch (error) {
-    xpStatus.textContent = `خطا در دریافت لیدربورد: ${error.message}`;
+    xpStatus.textContent = `گرفتن لیدربورد با مشکل خورد: ${error.message}`;
     xpStatus.classList.add('error');
   }
 };
@@ -492,7 +492,7 @@ const handleCupsSubmit = async (event) => {
 
   const chatId = cupsChatInput.value.trim();
   if (!chatId) {
-    cupsStatus.textContent = 'لطفاً شناسه چت را وارد کنید.';
+    cupsStatus.textContent = 'لطفاً شناسه چت رو بنویس.';
     cupsStatus.classList.add('error');
     return;
   }
@@ -503,14 +503,14 @@ const handleCupsSubmit = async (event) => {
     params.set('limit', limit);
   }
 
-  cupsStatus.textContent = 'در حال دریافت آرشیو جام‌ها...';
+  cupsStatus.textContent = 'در حال آماده کردن آرشیو جام‌ها...';
   cupsStatus.classList.remove('error', 'success');
   cupsList.innerHTML = '';
 
   try {
     const data = await fetchJSON(apiUrl(`cups?${params.toString()}`));
     if (!data.cups?.length) {
-      cupsStatus.textContent = 'جامی برای این چت ثبت نشده است.';
+      cupsStatus.textContent = 'برای این چت هنوز جامی ثبت نشده.';
       return;
     }
 
@@ -559,19 +559,19 @@ const handleCupsSubmit = async (event) => {
       cupsList.appendChild(card);
     });
   } catch (error) {
-    cupsStatus.textContent = `خطا در دریافت جام‌ها: ${error.message}`;
+    cupsStatus.textContent = `در گرفتن فهرست جام‌ها خطایی رخ داد: ${error.message}`;
     cupsStatus.classList.add('error');
   }
 };
 
 const loadAnalytics = async () => {
-  analyticsStatus.textContent = 'در حال جمع‌آوری آمار...';
+  analyticsStatus.textContent = 'در حال جمع‌آوری آمار تازه...';
   analyticsStatus.classList.remove('error', 'success');
   analyticsContent.innerHTML = '';
 
   try {
     const data = await fetchJSON(apiUrl('applications/insights'));
-    analyticsStatus.textContent = 'آخرین وضعیت ثبت شد.';
+    analyticsStatus.textContent = 'آمار تازه ذخیره شد.';
     analyticsStatus.classList.add('success');
 
     const card = document.createElement('article');
@@ -641,14 +641,14 @@ const loadAnalytics = async () => {
 
     analyticsContent.appendChild(card);
   } catch (error) {
-    analyticsStatus.textContent = `خطا در دریافت آمار: ${error.message}`;
+    analyticsStatus.textContent = `نتوانستیم آمار را بگیریم: ${error.message}`;
     analyticsStatus.classList.add('error');
   }
 };
 
 const loadAdmins = async () => {
   if (!adminsStatus || !adminsList) return;
-  adminsStatus.textContent = 'در حال دریافت فهرست ادمین‌ها...';
+  adminsStatus.textContent = 'داریم فهرست ادمین‌ها رو می‌آریم...';
   adminsStatus.classList.remove('error', 'success');
   adminsList.innerHTML = '';
 
@@ -656,7 +656,7 @@ const loadAdmins = async () => {
     const data = await fetchJSON(apiUrl('admins'));
     const admins = data?.admins || [];
     if (!admins.length) {
-      adminsStatus.textContent = 'هیچ ادمینی ثبت نشده است.';
+    adminsStatus.textContent = 'فعلاً ادمینی تعریف نشده.';
       return;
     }
 
@@ -688,7 +688,7 @@ const loadAdmins = async () => {
       adminsList.appendChild(item);
     });
   } catch (error) {
-    adminsStatus.textContent = `خطا در دریافت فهرست ادمین‌ها: ${error.message}`;
+    adminsStatus.textContent = `در گرفتن فهرست ادمین‌ها خطایی رخ داد: ${error.message}`;
     adminsStatus.classList.add('error');
   }
 };
@@ -699,14 +699,14 @@ const handleAdminAdd = async (event) => {
 
   const userIdValue = adminAddUserIdInput.value.trim();
   if (!userIdValue) {
-    adminAddStatus.textContent = 'لطفاً شناسه کاربری را وارد کنید.';
+    adminAddStatus.textContent = 'شناسه کاربری رو لطفاً وارد کن.';
     adminAddStatus.classList.add('error');
     return;
   }
 
   const parsedUserId = Number.parseInt(userIdValue, 10);
   if (Number.isNaN(parsedUserId)) {
-    adminAddStatus.textContent = 'شناسه کاربری باید یک عدد معتبر باشد.';
+    adminAddStatus.textContent = 'شناسه باید حتماً عدد معتبر باشه.';
     adminAddStatus.classList.add('error');
     return;
   }
@@ -723,7 +723,7 @@ const handleAdminAdd = async (event) => {
     payload.full_name = fullNameValue;
   }
 
-  adminAddStatus.textContent = 'در حال افزودن ادمین...';
+  adminAddStatus.textContent = 'در حال اضافه کردن ادمین...';
   adminAddStatus.classList.remove('error', 'success');
 
   try {
@@ -733,16 +733,16 @@ const handleAdminAdd = async (event) => {
       body: JSON.stringify(payload),
     });
     if (result?.status === 'updated') {
-      adminAddStatus.textContent = 'اطلاعات ادمین به‌روزرسانی شد.';
+      adminAddStatus.textContent = 'اطلاعات ادمین به‌روز شد.';
     } else {
-      adminAddStatus.textContent = 'ادمین با موفقیت افزوده شد.';
+      adminAddStatus.textContent = 'ادمین با موفقیت اضافه شد.';
     }
     adminAddStatus.classList.add('success');
     adminAddForm?.reset();
     adminAddUserIdInput.focus();
     await loadAdmins();
   } catch (error) {
-    adminAddStatus.textContent = `خطا در افزودن ادمین: ${error.message}`;
+    adminAddStatus.textContent = `در اضافه کردن ادمین مشکلی پیش اومد: ${error.message}`;
     adminAddStatus.classList.add('error');
   }
 };
@@ -753,32 +753,32 @@ const handleAdminRemove = async (event) => {
 
   const userIdValue = adminRemoveUserIdInput.value.trim();
   if (!userIdValue) {
-    adminRemoveStatus.textContent = 'لطفاً شناسه کاربری را وارد کنید.';
+    adminRemoveStatus.textContent = 'شناسه کاربری رو لطفاً وارد کن.';
     adminRemoveStatus.classList.add('error');
     return;
   }
 
   const parsedUserId = Number.parseInt(userIdValue, 10);
   if (Number.isNaN(parsedUserId)) {
-    adminRemoveStatus.textContent = 'شناسه کاربری باید یک عدد معتبر باشد.';
+    adminRemoveStatus.textContent = 'شناسه باید حتماً عدد معتبر باشه.';
     adminRemoveStatus.classList.add('error');
     return;
   }
 
-  adminRemoveStatus.textContent = 'در حال حذف ادمین...';
+  adminRemoveStatus.textContent = 'در حال حذف ادمین هستیم...';
   adminRemoveStatus.classList.remove('error', 'success');
 
   try {
     await fetchJSON(apiUrl(`admins/${encodeURIComponent(parsedUserId)}`), {
       method: 'DELETE',
     });
-    adminRemoveStatus.textContent = 'ادمین با موفقیت حذف شد.';
+    adminRemoveStatus.textContent = 'ادمین با موفقیت از لیست خارج شد.';
     adminRemoveStatus.classList.add('success');
     adminRemoveForm?.reset();
     adminRemoveUserIdInput.focus();
     await loadAdmins();
   } catch (error) {
-    adminRemoveStatus.textContent = `خطا در حذف ادمین: ${error.message}`;
+    adminRemoveStatus.textContent = `در حذف ادمین مشکلی پیش اومد: ${error.message}`;
     adminRemoveStatus.classList.add('error');
   }
 };
@@ -806,14 +806,14 @@ const handleAdminAuth = async (event) => {
 
   const userIdValue = adminAuthUserIdInput.value.trim();
   if (!userIdValue) {
-    adminAuthStatus.textContent = 'شناسه کاربری را وارد کنید.';
+    adminAuthStatus.textContent = 'شناسه کاربری رو وارد کن.';
     adminAuthStatus.classList.add('error');
     return;
   }
 
   const parsedUserId = Number.parseInt(userIdValue, 10);
   if (Number.isNaN(parsedUserId)) {
-    adminAuthStatus.textContent = 'شناسه وارد شده معتبر نیست.';
+    adminAuthStatus.textContent = 'این شناسه معتبر نیست.';
     adminAuthStatus.classList.add('error');
     return;
   }
@@ -823,7 +823,7 @@ const handleAdminAuth = async (event) => {
     setAdminApiKey(apiKeyValue);
   }
 
-  adminAuthStatus.textContent = 'در حال بررسی دسترسی...';
+  adminAuthStatus.textContent = 'در حال بررسی دسترسی هستیم...';
   adminAuthStatus.classList.remove('error', 'success');
 
   try {
@@ -831,7 +831,7 @@ const handleAdminAuth = async (event) => {
     if (!data?.admin) {
       throw new Error('دسترسی برای شما فعال نیست.');
     }
-    adminAuthStatus.textContent = 'دسترسی تأیید شد.';
+    adminAuthStatus.textContent = 'دسترسی تأیید شد. خوش آمدی!';
     adminAuthStatus.classList.add('success');
     setAdminSession(data.admin);
     loadAdmins();
@@ -839,7 +839,7 @@ const handleAdminAuth = async (event) => {
       adminAddUserIdInput.focus();
     }
   } catch (error) {
-    adminAuthStatus.textContent = `دسترسی نامعتبر است: ${error.message || ''} (بررسی کنید API Key صحیح باشد)`;
+    adminAuthStatus.textContent = `دسترسی تأیید نشد: ${error.message || ''} (لطفاً API Key را چک کن)`;
     adminAuthStatus.classList.add('error');
     setAdminSession(null);
   }

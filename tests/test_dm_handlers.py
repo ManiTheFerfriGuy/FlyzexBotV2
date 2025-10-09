@@ -317,7 +317,7 @@ def test_manage_questions_sets_pending_state() -> None:
     assert isinstance(pending, dict)
     assert pending.get("question_id") == "role_prompt"
     assert chat.messages
-    assert "متن جدید" in chat.messages[-1]["text"]
+    assert "متن تازه" in chat.messages[-1]["text"]
 
 
 def test_glass_dm_welcome_keyboard_hides_admin_button_for_regular_users() -> None:
