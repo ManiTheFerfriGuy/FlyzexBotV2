@@ -363,6 +363,10 @@ body::before {
   line-height: 1.6;
 }
 
+.status-text.warning {
+  color: #f59f0b;
+}
+
 .timeline-list,
 .item-list {
   list-style: none;
