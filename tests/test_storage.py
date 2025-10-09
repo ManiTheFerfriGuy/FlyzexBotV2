@@ -257,3 +257,26 @@ def test_sqlite_backup(tmp_path: Path) -> None:
         assert "2" in raw_snapshot.get("applications", {})
     finally:
         connection.close()
+
+
+def test_disable_persistence_prevents_disk_writes(tmp_path: Path) -> None:
+    key = cryptography.Fernet.generate_key()
+    storage_path = tmp_path / "store.enc"
+    storage = Storage(storage_path, EncryptionManager(key))
+    storage.disable_persistence()
+
+    async def runner() -> None:
+        await storage.load()
+        assert not storage_path.exists()
+
+        added = await storage.add_admin(123)
+        assert added
+        assert storage.is_admin(123)
+        assert storage._backup_path is None
+
+        assert not storage_path.exists()
+
+        await storage.save()
+        assert not storage_path.exists()
+
+    asyncio.run(runner())
