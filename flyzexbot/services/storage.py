@@ -237,8 +237,18 @@ class Storage:
         self._lock = asyncio.Lock()
         self._state = StorageState()
         self._backup_path = backup_path
+        self._persistence_enabled = True
+
+    def disable_persistence(self) -> None:
+        """Disable load/save operations for ephemeral runtimes."""
+
+        self._persistence_enabled = False
+        self._backup_path = None
 
     async def load(self) -> None:
+        if not self._persistence_enabled:
+            return
+
         if not self._path.exists():
             self._path.parent.mkdir(parents=True, exist_ok=True)
             return
@@ -258,6 +268,9 @@ class Storage:
         LOGGER.info("storage_loaded", extra={"path": str(self._path)})
 
     async def save(self) -> None:
+        if not self._persistence_enabled:
+            return
+
         payload = await self._snapshot()
         await self._write_snapshot(payload)
         if self._backup_path:
