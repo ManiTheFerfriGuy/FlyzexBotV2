@@ -38,6 +38,9 @@
         background: rgba(255, 255, 255, .05);
         border: 1px solid rgba(148, 163, 184, .22);
         box-shadow: 0 10px 30px rgba(15, 23, 42, .25);
+        justify-content: center;
+        margin-inline: auto;
+        width: min(100%, 340px);
       }
       .switch-btn {
         border: none;
@@ -49,6 +52,11 @@
         font-size: .95rem;
         font-weight: 600;
         letter-spacing: .01em;
+        font-family: "Plus Jakarta Sans", "Vazirmatn", sans-serif;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
         transition: background .25s var(--ease-spring), color .25s var(--ease-spring), transform .2s var(--ease-spring), box-shadow .25s var(--ease-spring);
       }
       .switch-btn:hover {
@@ -81,11 +89,18 @@
       .leader-list > li:nth-child(2) { animation-delay: .08s; }
       .leader-list > li:nth-child(3) { animation-delay: .11s; }
 
-      .leader {
+      .leader-list > li.leader {
         display: grid;
         grid-template-columns: auto auto 1fr auto;
-        gap: .85rem;
+        gap: 1rem;
         align-items: center;
+        position: relative;
+        padding-block: 1.05rem;
+        padding-inline: 1.25rem;
+        border-radius: 20px;
+        border: 1px solid rgba(148, 163, 184, .22);
+        background: linear-gradient(140deg, rgba(15, 23, 42, .86), rgba(30, 41, 59, .68));
+        box-shadow: 0 16px 32px rgba(8, 14, 35, .32);
       }
       .rank {
         width: 2.35rem;
@@ -115,18 +130,71 @@
         display: block;
       }
       .avatar span { font-weight: 700; opacity: .9; letter-spacing: .04em; }
-      .who { display: grid; gap: .15rem; }
-      .who strong { font-weight: 600; letter-spacing: .01em; }
-      .who small { opacity: .72; font-size: .8rem; }
-      .score { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+      .identity { display: grid; gap: .25rem; }
+      .identity strong { font-weight: 600; letter-spacing: .01em; }
+      .identity-meta { display: flex; flex-wrap: wrap; gap: .35rem; }
+      .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        font-size: .78rem;
+        padding: .25rem .65rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, .16);
+        border: 1px solid rgba(148, 163, 184, .22);
+        color: rgba(226, 232, 240, .88);
+        letter-spacing: .02em;
+      }
+      .meta-chip i { font-style: normal; opacity: .8; }
+      .stat {
+        display: grid;
+        gap: .15rem;
+        justify-items: end;
+        text-align: end;
+        margin-inline-start: 1.1rem;
+        padding-inline-start: 1.25rem;
+        border-inline-start: 1px solid rgba(148, 163, 184, .28);
+      }
+      .score {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: .04em;
+        font-size: 1.1rem;
+      }
+      .score-label { font-size: .78rem; color: rgba(203, 213, 225, .75); letter-spacing: .05em; }
+      .leader.preview { opacity: .9; pointer-events: none; }
+      .placeholder {
+        position: relative;
+        overflow: hidden;
+        color: transparent;
+        border-radius: 12px;
+        background: rgba(148, 163, 184, .14);
+        min-width: 6ch;
+        min-height: 1rem;
+      }
+      .placeholder::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent 0%, rgba(226, 232, 240, .18) 45%, transparent 90%);
+        animation: shimmer 1.6s linear infinite;
+      }
 
       /* Keyframes */
       @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
       @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
       @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
+      @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
       @media (min-width: 900px) {
         .leaderboard-grid { grid-template-columns: repeat(2, minmax(340px, 1fr)); }
+        .hero { justify-items: center; text-align: center; }
+        .hero > div { text-align: center; }
+        .main-content { max-width: 960px; width: 100%; }
+      }
+      @media (min-width: 1200px) {
+        .main-content { max-width: 1024px; }
+        .switcher { width: min(100%, 420px); }
       }
       @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
     </style>
@@ -137,12 +205,12 @@
         <main class="main-content" aria-live="polite">
           <header class="page-header hero">
             <div>
-              <p id="page-subtitle" class="page-subtitle">همه آمار گیلد یک‌جا و دوستانه؛ برای مینی‌اپ تلگرام و دسکتاپ</p>
-              <h2 id="page-title" class="page-title">لیدربورد فلایزکس</h2>
+              <p id="page-subtitle" class="page-subtitle">همه آمار گیلد اینجاست؛ یک نگاه و بس! ✨</p>
+              <h2 id="page-title" class="page-title">لیدربورد فلایزکس 🚀</h2>
             </div>
             <nav class="switcher" aria-label="انتخاب لیدربورد">
-              <button id="btn-xp" type="button" class="switch-btn active">برترین‌های XP</button>
-              <button id="btn-cups" type="button" class="switch-btn">برترین‌های جام</button>
+              <button id="btn-xp" type="button" class="switch-btn active">⚡️ قهرمانان XP</button>
+              <button id="btn-cups" type="button" class="switch-btn">🏆 ستاره‌های جام</button>
             </nav>
           </header>
 
@@ -150,8 +218,8 @@
           <section id="route-xp" class="route active" tabindex="-1">
             <article class="data-card">
               <header class="card-header">
-                <h3>۱۰ قهرمان برتر XP</h3>
-                <button type="button" id="xp-refresh" class="icon-button" aria-label="تازه کن">⟳</button>
+                <h3>۱۰ قهرمان برتر XP ⚡️</h3>
+                <button type="button" id="xp-refresh" class="icon-button" aria-label="تازه‌سازی XP">⟳</button>
               </header>
               <ul id="xp-top-list" class="item-list leader-list" aria-live="polite"></ul>
               <p id="xp-status" class="status-text"></p>
@@ -162,8 +230,8 @@
           <section id="route-cups" class="route" tabindex="-1" hidden>
             <article class="data-card">
               <header class="card-header">
-                <h3>۱۰ قهرمان برتر جام</h3>
-                <button type="button" id="cups-refresh" class="icon-button" aria-label="تازه کن">⟳</button>
+                <h3>۱۰ قهرمان برتر جام 🏆</h3>
+                <button type="button" id="cups-refresh" class="icon-button" aria-label="تازه‌سازی جام">⟳</button>
               </header>
               <ul id="cups-top-list" class="item-list leader-list" aria-live="polite"></ul>
               <p id="cups-status" class="status-text"></p>
@@ -225,6 +293,16 @@
         }
       };
 
+      const metaChip = (icon, text) => {
+        const chip = document.createElement('span');
+        chip.className = 'meta-chip';
+        const iconEl = document.createElement('i');
+        iconEl.textContent = icon;
+        chip.appendChild(iconEl);
+        chip.appendChild(document.createTextNode(text));
+        return chip;
+      };
+
       const li = (rank, fullName, username, userId, value, label, avatarUrl) => {
         const item = document.createElement('li');
         item.className = 'leader';
@@ -236,14 +314,75 @@
           const initial = (String(fullName || username || 'کاربر').trim()[0] || '؟').toUpperCase();
           const span = document.createElement('span'); span.textContent = initial; av.appendChild(span);
         }
-        const who = document.createElement('div'); who.className = 'who';
+        const identity = document.createElement('div'); identity.className = 'identity';
         const t = document.createElement('strong'); t.textContent = fullName || username || `کاربر ${userId}`;
-        const sub = document.createElement('small'); sub.textContent = `${username ? '@'+String(username).replace(/^@+/, '') : '—'} · ${userId}`;
-        who.appendChild(t); who.appendChild(sub);
-        const sc = document.createElement('span'); sc.className = 'score'; sc.textContent = `${value} ${label}`;
-        item.appendChild(r); item.appendChild(av); item.appendChild(who); item.appendChild(sc);
+        identity.appendChild(t);
+        const meta = document.createElement('div'); meta.className = 'identity-meta';
+        if (username) {
+          const cleaned = `@${String(username).replace(/^@+/, '')}`;
+          meta.appendChild(metaChip('👤', cleaned));
+        }
+        meta.appendChild(metaChip('🆔', `#${userId}`));
+        identity.appendChild(meta);
+        const stat = document.createElement('div'); stat.className = 'stat';
+        const sc = document.createElement('span'); sc.className = 'score'; sc.textContent = value;
+        const scLabel = document.createElement('span'); scLabel.className = 'score-label'; scLabel.textContent = label;
+        stat.appendChild(sc); stat.appendChild(scLabel);
+        item.appendChild(r); item.appendChild(av); item.appendChild(identity); item.appendChild(stat);
         return item;
       };
+
+      const createPreviewItem = (rank, label) => {
+        const item = document.createElement('li');
+        item.className = 'leader preview';
+        const r = document.createElement('span'); r.className = 'rank'; r.textContent = `#${rank}`;
+        const av = document.createElement('div'); av.className = 'avatar';
+        const avatarPlaceholder = document.createElement('span');
+        avatarPlaceholder.className = 'placeholder';
+        avatarPlaceholder.style.width = '100%';
+        avatarPlaceholder.style.height = '100%';
+        av.appendChild(avatarPlaceholder);
+        const identity = document.createElement('div'); identity.className = 'identity';
+        const namePlaceholder = document.createElement('span');
+        namePlaceholder.className = 'placeholder';
+        namePlaceholder.style.width = '12ch';
+        namePlaceholder.style.height = '1.1rem';
+        const meta = document.createElement('div'); meta.className = 'identity-meta';
+        const metaPlaceholder = document.createElement('span');
+        metaPlaceholder.className = 'placeholder';
+        metaPlaceholder.style.width = '9ch';
+        meta.appendChild(metaPlaceholder);
+        identity.appendChild(namePlaceholder);
+        identity.appendChild(meta);
+        const stat = document.createElement('div'); stat.className = 'stat';
+        const statValue = document.createElement('span');
+        statValue.className = 'placeholder';
+        statValue.style.width = '6ch';
+        const statLabel = document.createElement('span');
+        statLabel.className = 'placeholder';
+        statLabel.style.width = '5ch';
+        stat.appendChild(statValue);
+        stat.appendChild(statLabel);
+        item.appendChild(r);
+        item.appendChild(av);
+        item.appendChild(identity);
+        item.appendChild(stat);
+        stat.setAttribute('aria-label', label);
+        return item;
+      };
+
+      const renderPreviews = (element, label) => {
+        if (!element) return;
+        element.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        for (let i = 1; i <= 3; i += 1) {
+          frag.appendChild(createPreviewItem(i, label));
+        }
+        element.appendChild(frag);
+      };
+
+      renderPreviews(xpList, 'XP');
+      renderPreviews(cupsList, 'جام');
 
       const computeApiBasePath = () => {
         const override = window.__FLYZEXBOT_API_BASE_PATH__;
@@ -391,11 +530,12 @@
           }
         }
         clearStatus(xpStatus);
-        xpStatus.textContent = 'در حال آماده‌سازی لیست...'; xpList.innerHTML = '';
+        xpStatus.textContent = '⚙️ در حال آماده‌سازی لیست هستیم...';
+        renderPreviews(xpList, 'XP');
         try {
           const data = await fetchJSON(apiUrl('leaderboard/xp/top?limit=10'));
           const items = data.leaderboard || [];
-          if (!items.length) { xpStatus.textContent = 'فعلاً آماری برای نمایش نداریم.'; return; }
+          if (!items.length) { xpStatus.textContent = 'فعلاً آماری برای نمایش نداریم.'; xpList.innerHTML = ''; return; }
           xpStatus.textContent = '';
           const frag = document.createDocumentFragment();
           for (const e of items) {
@@ -412,6 +552,7 @@
         } catch (err) {
           xpStatus.textContent = `مشکلی پیش اومد: ${err.message || err}`;
           xpStatus.classList.add('error');
+          xpList.innerHTML = '';
         }
       };
 
@@ -422,11 +563,12 @@
           }
         }
         clearStatus(cupsStatus);
-        cupsStatus.textContent = 'در حال آماده‌سازی لیست...'; cupsList.innerHTML = '';
+        cupsStatus.textContent = '⚙️ در حال آماده‌سازی لیست هستیم...';
+        renderPreviews(cupsList, 'جام');
         try {
           const data = await fetchJSON(apiUrl('leaderboard/cups/top?limit=10'));
           const items = data.leaderboard || [];
-          if (!items.length) { cupsStatus.textContent = 'اینجا هنوز جامی ثبت نشده.'; return; }
+          if (!items.length) { cupsStatus.textContent = 'اینجا هنوز جامی ثبت نشده.'; cupsList.innerHTML = ''; return; }
           cupsStatus.textContent = '';
           const frag = document.createDocumentFragment();
           for (const e of items) {
@@ -443,6 +585,7 @@
         } catch (err) {
           cupsStatus.textContent = `مشکلی پیش اومد: ${err.message || err}`;
           cupsStatus.classList.add('error');
+          cupsList.innerHTML = '';
         }
       };
 
