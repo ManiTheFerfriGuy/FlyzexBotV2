@@ -30,14 +30,14 @@
       }
 
       .main-content {
-        width: min(420px, 100%);
+        width: min(364px, 100%);
         margin-inline: auto;
         background: linear-gradient(160deg, rgba(14, 21, 42, .94), rgba(11, 18, 36, .86));
         border-radius: 26px;
         border: 1px solid rgba(148, 163, 184, .18);
         box-shadow: 0 28px 70px rgba(3, 8, 23, .55);
-        padding: clamp(1.1rem, 4vw, 1.6rem);
-        gap: clamp(1.15rem, 3vw, 1.55rem);
+        padding: clamp(1.05rem, 4vw, 1.45rem);
+        gap: clamp(1.1rem, 3vw, 1.45rem);
         position: relative;
         overflow: hidden;
       }
@@ -174,10 +174,8 @@
       .leader {
         position: relative;
         display: grid;
-        grid-template-columns: auto 1fr;
-        align-items: center;
         gap: clamp(.85rem, 2.5vw, 1.1rem);
-        padding: clamp(.9rem, 3vw, 1.1rem) clamp(.85rem, 3vw, 1.2rem);
+        padding: clamp(.95rem, 3.2vw, 1.2rem) clamp(.9rem, 3vw, 1.25rem);
         border-radius: 20px;
         border: 1px solid rgba(148, 163, 184, .2);
         background: linear-gradient(130deg, rgba(15, 24, 45, .82), rgba(20, 30, 55, .72));
@@ -212,17 +210,68 @@
         pointer-events: none;
       }
 
+      .leader.preview .rank-chip {
+        background: rgba(148, 163, 184, .24);
+        color: rgba(226, 232, 240, .85);
+        box-shadow: none;
+      }
+
+      .leader.preview .score-pill {
+        background: rgba(148, 163, 184, .12);
+        border-color: rgba(148, 163, 184, .24);
+      }
+
+      .leader-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .6rem;
+      }
+
+      .rank-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: .3rem .9rem;
+        border-radius: 999px;
+        background: var(--badge);
+        color: #0f172a;
+        font-weight: 700;
+        font-size: .95rem;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        box-shadow: 0 14px 30px var(--glow);
+      }
+
+      .score-pill {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: .15rem;
+        padding: .45rem .8rem;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, .28);
+        background: rgba(148, 163, 184, .14);
+        text-align: end;
+        min-width: 5.6rem;
+      }
+
+      .leader-content {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: clamp(.75rem, 2.5vw, .95rem);
+        align-items: center;
+      }
+
       .portrait {
-        position: relative;
         display: grid;
         place-items: center;
-        padding-inline-end: .3rem;
       }
 
       .avatar {
-        width: 3.2rem;
-        height: 3.2rem;
-        border-radius: 18px;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 16px;
         background: linear-gradient(135deg, rgba(91, 141, 253, .24), rgba(45, 212, 191, .16));
         display: grid;
         place-items: center;
@@ -239,73 +288,6 @@
         height: 100%;
         object-fit: cover;
         display: block;
-      }
-
-      .rank {
-        position: absolute;
-        inset-block-start: -.42rem;
-        inset-inline-start: -.42rem;
-        width: 2.55rem;
-        aspect-ratio: 1;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        background: var(--badge);
-        color: #0f172a;
-        font-weight: 700;
-        font-size: 1rem;
-        letter-spacing: .05em;
-        box-shadow: 0 14px 30px var(--glow);
-      }
-
-      .leader[data-rank='1'] {
-        border-color: rgba(250, 204, 21, .55);
-        box-shadow: 0 26px 48px rgba(250, 204, 21, .22);
-      }
-
-      .leader[data-rank='1']::after {
-        background: radial-gradient(circle at 20% 20%, rgba(250, 204, 21, .4), transparent 68%);
-        opacity: .65;
-      }
-
-      .leader[data-rank='1'] .rank {
-        background: linear-gradient(135deg, #fde047, #f97316);
-        color: #1f2937;
-      }
-
-      .leader[data-rank='2'] {
-        border-color: rgba(191, 219, 254, .4);
-      }
-
-      .leader[data-rank='2']::after {
-        background: radial-gradient(circle at 20% 20%, rgba(191, 219, 254, .35), transparent 70%);
-        opacity: .55;
-      }
-
-      .leader[data-rank='2'] .rank {
-        background: linear-gradient(135deg, #dbeafe, #818cf8);
-        color: #1e1b4b;
-      }
-
-      .leader[data-rank='3'] {
-        border-color: rgba(251, 191, 217, .42);
-      }
-
-      .leader[data-rank='3']::after {
-        background: radial-gradient(circle at 20% 20%, rgba(251, 191, 217, .35), transparent 70%);
-        opacity: .55;
-      }
-
-      .leader[data-rank='3'] .rank {
-        background: linear-gradient(135deg, #fbcfe8, #ec4899);
-        color: #831843;
-      }
-
-      .leader-body {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: clamp(.55rem, 2vw, .9rem);
-        align-items: center;
       }
 
       .identity {
@@ -340,27 +322,18 @@
 
       .meta-chip i { font-style: normal; opacity: .85; font-size: .85rem; }
 
-      .stat {
-        display: grid;
-        justify-items: end;
-        gap: .18rem;
-        padding-inline-start: clamp(.85rem, 3vw, 1.1rem);
-        border-inline-start: 1px solid rgba(148, 163, 184, .28);
-        text-align: end;
-        min-width: 6.2rem;
-      }
-
       .score {
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         letter-spacing: .05em;
-        font-size: 1.18rem;
+        font-size: 1.2rem;
       }
 
       .score-label {
-        font-size: .78rem;
+        font-size: .72rem;
         color: var(--muted);
-        letter-spacing: .05em;
+        letter-spacing: .14em;
+        text-transform: uppercase;
       }
 
       .status-text {
@@ -403,27 +376,64 @@
       @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
       @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
+      .leader[data-rank='1'] {
+        border-color: rgba(250, 204, 21, .45);
+        box-shadow: 0 26px 48px rgba(250, 204, 21, .2);
+      }
+
+      .leader[data-rank='1'] .rank-chip {
+        background: linear-gradient(135deg, #fde047, #f97316);
+        color: #1f2937;
+      }
+
+      .leader[data-rank='1'] .score-pill {
+        background: rgba(250, 204, 21, .18);
+        border-color: rgba(250, 204, 21, .35);
+      }
+
+      .leader[data-rank='2'] {
+        border-color: rgba(191, 219, 254, .35);
+      }
+
+      .leader[data-rank='2'] .rank-chip {
+        background: linear-gradient(135deg, #dbeafe, #818cf8);
+        color: #1e1b4b;
+      }
+
+      .leader[data-rank='2'] .score-pill {
+        background: rgba(191, 219, 254, .16);
+        border-color: rgba(191, 219, 254, .3);
+      }
+
+      .leader[data-rank='3'] {
+        border-color: rgba(251, 191, 217, .38);
+      }
+
+      .leader[data-rank='3'] .rank-chip {
+        background: linear-gradient(135deg, #fbcfe8, #ec4899);
+        color: #831843;
+      }
+
+      .leader[data-rank='3'] .score-pill {
+        background: rgba(251, 191, 217, .18);
+        border-color: rgba(251, 191, 217, .32);
+      }
+
       @media (max-width: 520px) {
         body { padding: clamp(.45rem, 4vw, .8rem); }
-        .main-content { padding: clamp(.95rem, 4.2vw, 1.35rem); border-radius: 24px; }
+        .main-content { width: 100%; padding: clamp(.9rem, 4.2vw, 1.3rem); border-radius: 24px; }
         .switcher { width: 100%; }
-        .leader { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: .85rem; }
-        .leader .portrait { padding: 0; }
-        .leader-body { grid-template-columns: 1fr; justify-items: center; text-align: center; }
-        .leader-body .stat {
-          border: none;
-          padding-inline-start: 0;
-          justify-items: center;
-          text-align: center;
-        }
+        .leader { text-align: start; }
+        .leader-header { flex-direction: column; align-items: stretch; gap: .5rem; }
+        .score-pill { align-items: flex-start; text-align: start; width: 100%; }
+        .leader-content { grid-template-columns: auto 1fr; align-items: start; }
       }
 
       @media (max-width: 360px) {
         .main-content { padding: .85rem; border-radius: 22px; }
         .switcher { padding: .3rem; }
         .switch-btn { padding: .5rem .75rem; font-size: .88rem; }
-        .rank { width: 2.35rem; }
-        .avatar { width: 2.85rem; height: 2.85rem; }
+        .avatar { width: 2.75rem; height: 2.75rem; }
       }
 
       @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -538,6 +548,29 @@
         item.className = 'leader';
         item.dataset.rank = rank;
 
+        const header = document.createElement('header');
+        header.className = 'leader-header';
+
+        const rankChip = document.createElement('span');
+        rankChip.className = 'rank-chip';
+        rankChip.textContent = `#${rank}`;
+        header.appendChild(rankChip);
+
+        const score = document.createElement('div');
+        score.className = 'score-pill';
+        const sc = document.createElement('span');
+        sc.className = 'score';
+        sc.textContent = value;
+        const scLabel = document.createElement('span');
+        scLabel.className = 'score-label';
+        scLabel.textContent = label;
+        score.appendChild(sc);
+        score.appendChild(scLabel);
+        header.appendChild(score);
+
+        const content = document.createElement('div');
+        content.className = 'leader-content';
+
         const portrait = document.createElement('div');
         portrait.className = 'portrait';
 
@@ -554,15 +587,7 @@
           span.textContent = initial;
           av.appendChild(span);
         }
-
-        const r = document.createElement('span');
-        r.className = 'rank';
-        r.textContent = `#${rank}`;
         portrait.appendChild(av);
-        portrait.appendChild(r);
-
-        const leaderBody = document.createElement('div');
-        leaderBody.className = 'leader-body';
 
         const identity = document.createElement('div');
         identity.className = 'identity';
@@ -578,22 +603,11 @@
         meta.appendChild(metaChip('🆔', `#${userId}`));
         identity.appendChild(meta);
 
-        const stat = document.createElement('div');
-        stat.className = 'stat';
-        const sc = document.createElement('span');
-        sc.className = 'score';
-        sc.textContent = value;
-        const scLabel = document.createElement('span');
-        scLabel.className = 'score-label';
-        scLabel.textContent = label;
-        stat.appendChild(sc);
-        stat.appendChild(scLabel);
+        content.appendChild(portrait);
+        content.appendChild(identity);
 
-        leaderBody.appendChild(identity);
-        leaderBody.appendChild(stat);
-
-        item.appendChild(portrait);
-        item.appendChild(leaderBody);
+        item.appendChild(header);
+        item.appendChild(content);
         return item;
       };
 
@@ -601,6 +615,32 @@
         const item = document.createElement('li');
         item.className = 'leader preview';
         item.dataset.rank = rank;
+
+        const header = document.createElement('header');
+        header.className = 'leader-header';
+
+        const rankChip = document.createElement('span');
+        rankChip.className = 'rank-chip';
+        rankChip.textContent = `#${rank}`;
+        header.appendChild(rankChip);
+
+        const score = document.createElement('div');
+        score.className = 'score-pill';
+        const statValue = document.createElement('span');
+        statValue.className = 'placeholder';
+        statValue.style.width = '6ch';
+        statValue.style.height = '1.1rem';
+        const statLabel = document.createElement('span');
+        statLabel.className = 'placeholder';
+        statLabel.style.width = '5ch';
+        statLabel.style.height = '.8rem';
+        score.appendChild(statValue);
+        score.appendChild(statLabel);
+        score.setAttribute('aria-label', label);
+        header.appendChild(score);
+
+        const content = document.createElement('div');
+        content.className = 'leader-content';
 
         const portrait = document.createElement('div');
         portrait.className = 'portrait';
@@ -612,15 +652,7 @@
         avatarPlaceholder.style.width = '100%';
         avatarPlaceholder.style.height = '100%';
         av.appendChild(avatarPlaceholder);
-
-        const r = document.createElement('span');
-        r.className = 'rank';
-        r.textContent = `#${rank}`;
         portrait.appendChild(av);
-        portrait.appendChild(r);
-
-        const leaderBody = document.createElement('div');
-        leaderBody.className = 'leader-body';
 
         const identity = document.createElement('div');
         identity.className = 'identity';
@@ -637,23 +669,11 @@
         identity.appendChild(namePlaceholder);
         identity.appendChild(meta);
 
-        const stat = document.createElement('div');
-        stat.className = 'stat';
-        const statValue = document.createElement('span');
-        statValue.className = 'placeholder';
-        statValue.style.width = '6ch';
-        const statLabel = document.createElement('span');
-        statLabel.className = 'placeholder';
-        statLabel.style.width = '5ch';
-        stat.appendChild(statValue);
-        stat.appendChild(statLabel);
-        stat.setAttribute('aria-label', label);
+        content.appendChild(portrait);
+        content.appendChild(identity);
 
-        leaderBody.appendChild(identity);
-        leaderBody.appendChild(stat);
-
-        item.appendChild(portrait);
-        item.appendChild(leaderBody);
+        item.appendChild(header);
+        item.appendChild(content);
         return item;
       };
 
