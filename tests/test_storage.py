@@ -93,12 +93,15 @@ def test_xp_and_cups(tmp_path: Path) -> None:
     async def runner() -> None:
         await storage.load()
 
-        score = await storage.add_xp(100, 1, 5)
+        score = await storage.add_xp(100, 1, 5, full_name="Hero", username="@hero")
         assert score == 5
         score = await storage.add_xp(100, 1, 5)
         assert score == 10
         leaderboard = storage.get_xp_leaderboard(100, 5)
         assert leaderboard == [("1", 10)]
+        profile = storage.get_any_profile(1)
+        assert profile["full_name"] == "Hero"
+        assert profile["username"] == "hero"
 
         await storage.add_cup(100, "Cup", "Desc", ["A", "B", "C"])
         cups = storage.get_cups(100, 5)

@@ -87,5 +87,7 @@ def test_track_activity_handles_zero_reward() -> None:
         "chat_id": chat.id,
         "user_id": user.id,
         "amount": 0,
+        "full_name": user.full_name,
+        "username": user.username,
     }
     assert message.replies == []

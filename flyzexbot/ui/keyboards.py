@@ -9,6 +9,50 @@ LANGUAGE_CODES: tuple[str, ...] = ("fa", "en")
 DEFAULT_LANGUAGE_LABELS: dict[str, str] = {"fa": "فارسی", "en": "English"}
 
 
+def group_admin_panel_keyboard(texts: TextPack | None = None) -> InlineKeyboardMarkup:
+    text_pack = texts or PERSIAN_TEXTS
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    text=f"🚫 {text_pack.group_panel_ban_button}",
+                    callback_data="group_panel:ban",
+                ),
+                InlineKeyboardButton(
+                    text=f"🔇 {text_pack.group_panel_mute_button}",
+                    callback_data="group_panel:mute",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"✨ {text_pack.group_panel_add_xp_button}",
+                    callback_data="group_panel:add_xp",
+                ),
+                InlineKeyboardButton(
+                    text=f"🏆 {text_pack.group_panel_manage_cups_button}",
+                    callback_data="group_panel:cups",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"🛡️ {text_pack.group_panel_manage_admins_button}",
+                    callback_data="group_panel:admins",
+                ),
+                InlineKeyboardButton(
+                    text=f"⚙️ {text_pack.group_panel_settings_button}",
+                    callback_data="group_panel:settings",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"✖️ {text_pack.group_panel_close_button}",
+                    callback_data="group_panel:close",
+                )
+            ],
+        ]
+    )
+
+
 def glass_dm_welcome_keyboard(
     texts: TextPack | None = None,
     webapp_url: str | None = None,

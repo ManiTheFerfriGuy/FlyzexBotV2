@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from html import escape
 import logging
-from typing import List, Sequence, Tuple
+import time
+from typing import Dict, List, Sequence, Tuple
 
-from telegram import ChatMember, InlineKeyboardMarkup, Update
+from telegram import ChatMember, ChatPermissions, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
 from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
                           MessageHandler, filters)
@@ -13,7 +14,8 @@ from ..localization import (AVAILABLE_LANGUAGE_CODES, PERSIAN_TEXTS, TextPack,
                             get_text_pack, normalize_language_code)
 from ..services.analytics import AnalyticsTracker, NullAnalytics
 from ..services.storage import Storage
-from ..ui.keyboards import leaderboard_refresh_keyboard
+from ..ui.keyboards import (group_admin_panel_keyboard,
+                            leaderboard_refresh_keyboard)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +28,7 @@ class GroupHandlers:
         xp_limit: int,
         cups_limit: int,
         milestone_interval: int = 5,
+        xp_notification_cooldown: int = 180,
         analytics: AnalyticsTracker | NullAnalytics | None = None,
     ) -> None:
         self.storage = storage
@@ -34,6 +37,8 @@ class GroupHandlers:
         self.cups_limit = cups_limit
         self.milestone_interval = milestone_interval
         self.analytics = analytics or NullAnalytics()
+        self.xp_notification_cooldown = max(0, xp_notification_cooldown)
+        self._xp_notifications: Dict[Tuple[int, int], float] = {}
 
     def build_handlers(self) -> list:
         return [
@@ -41,7 +46,12 @@ class GroupHandlers:
             CommandHandler("xp", self.show_xp_leaderboard, filters=filters.ChatType.GROUPS),
             CommandHandler("cups", self.show_cup_leaderboard, filters=filters.ChatType.GROUPS),
             CommandHandler("add_cup", self.add_cup, filters=filters.ChatType.GROUPS),
+            CommandHandler("addxp", self.command_add_xp, filters=filters.ChatType.GROUPS),
+            CommandHandler("promote", self.command_promote_admin, filters=filters.ChatType.GROUPS),
+            CommandHandler("demote", self.command_demote_admin, filters=filters.ChatType.GROUPS),
+            CommandHandler("panel", self.show_panel, filters=filters.ChatType.GROUPS),
             CallbackQueryHandler(self.handle_leaderboard_refresh, pattern=r"^leaderboard:"),
+            CallbackQueryHandler(self.handle_panel_action, pattern=r"^group_panel:"),
         ]
 
     async def track_activity(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -49,6 +59,8 @@ class GroupHandlers:
         if message is None or update.effective_chat is None or update.effective_user is None:
             return
         if getattr(update.effective_user, "is_bot", False):
+            return
+        if await self._maybe_handle_panel_response(update, context):
             return
         if message.text and message.text.startswith("/"):
             return
@@ -59,6 +71,8 @@ class GroupHandlers:
                     chat_id=update.effective_chat.id,
                     user_id=update.effective_user.id,
                     amount=self.xp_reward,
+                    full_name=getattr(update.effective_user, "full_name", None),
+                    username=getattr(update.effective_user, "username", None),
                 )
         except Exception as exc:
             LOGGER.error("Failed to update XP for %s: %s", update.effective_user.id, exc)
@@ -69,15 +83,138 @@ class GroupHandlers:
             return
         milestone_score = self.xp_reward * self.milestone_interval
         if milestone_score > 0 and new_score % milestone_score == 0:
-            await message.reply_text(
-                texts.group_xp_updated.format(
-                    full_name=update.effective_user.full_name
-                    or update.effective_user.username
-                    or str(update.effective_user.id),
-                    xp=new_score,
+            should_notify = True
+            if self.xp_notification_cooldown:
+                key = (update.effective_chat.id, update.effective_user.id)
+                last_tick = self._xp_notifications.get(key, 0.0)
+                now = time.monotonic()
+                if now - last_tick < self.xp_notification_cooldown:
+                    should_notify = False
+                else:
+                    self._xp_notifications[key] = now
+            if should_notify:
+                await message.reply_text(
+                    texts.group_xp_updated.format(
+                        full_name=update.effective_user.full_name
+                        or update.effective_user.username
+                        or str(update.effective_user.id),
+                        xp=new_score,
+                    )
                 )
-            )
         await self.analytics.record("group.activity_tracked")
+
+    async def command_add_xp(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        chat = update.effective_chat
+        actor = update.effective_user
+        message = update.effective_message
+        if chat is None or actor is None or message is None:
+            return
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        if not await self._is_admin(context, chat.id, actor.id):
+            await message.reply_text(texts.dm_admin_only)
+            return
+
+        target_user = self._resolve_target_from_message(message)
+        amount: int | None = None
+        if context.args:
+            try:
+                amount = int(context.args[-1])
+            except ValueError:
+                amount = None
+        if target_user is None and context.args:
+            candidate = context.args[0]
+            fetched = await self._fetch_member(context, chat.id, candidate)
+            if fetched:
+                target_user = fetched
+        if target_user is None and message.reply_to_message and message.reply_to_message.from_user:
+            target_user = message.reply_to_message.from_user
+        if target_user is None or amount is None:
+            await message.reply_text(texts.group_add_xp_usage)
+            return
+
+        try:
+            total = await self.storage.add_xp(
+                chat.id,
+                target_user.id,
+                amount,
+                full_name=getattr(target_user, "full_name", None),
+                username=getattr(target_user, "username", None),
+            )
+        except Exception as exc:
+            LOGGER.error("Failed to grant XP manually: %s", exc)
+            await message.reply_text(texts.error_generic)
+            return
+
+        await message.reply_text(
+            texts.group_add_xp_success.format(
+                full_name=target_user.full_name or target_user.username or target_user.id,
+                xp=total,
+            )
+        )
+
+    async def command_promote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        await self._handle_admin_toggle(update, context, promote=True)
+
+    async def command_demote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        await self._handle_admin_toggle(update, context, promote=False)
+
+    async def show_panel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        chat = update.effective_chat
+        actor = update.effective_user
+        message = update.effective_message
+        if chat is None or actor is None or message is None:
+            return
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        if not await self._is_admin(context, chat.id, actor.id):
+            await message.reply_text(texts.dm_admin_only)
+            return
+
+        await message.reply_text(
+            texts.group_panel_intro,
+            reply_markup=group_admin_panel_keyboard(texts),
+        )
+
+    async def handle_panel_action(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        query = update.callback_query
+        if not query or not query.data:
+            return
+        user = query.from_user
+        message = query.message
+        chat = message.chat if message else None
+        if chat is None or user is None:
+            return
+        if not await self._is_admin(context, chat.id, user.id):
+            await query.answer()
+            return
+        texts = self._get_texts(context, getattr(user, "language_code", None))
+        await query.answer()
+        _, action = query.data.split(":", 1)
+        if action == "close":
+            if message:
+                try:
+                    await message.edit_text(texts.group_panel_closed)
+                except Exception:
+                    await message.reply_text(texts.group_panel_closed)
+            return
+
+        if action in {"ban", "mute", "add_xp"}:
+            pending = context.chat_data.setdefault("group_panel_pending", {})
+            pending[user.id] = {"action": action}
+            prompt_key = {
+                "ban": "group_panel_ban_prompt",
+                "mute": "group_panel_mute_prompt",
+                "add_xp": "group_panel_add_xp_prompt",
+            }[action]
+            await message.reply_text(getattr(texts, prompt_key))
+            return
+
+        info_messages = {
+            "cups": texts.group_panel_cups_hint,
+            "admins": texts.group_panel_admins_hint,
+            "settings": texts.group_panel_settings_hint,
+        }
+        if action in info_messages:
+            await message.reply_text(info_messages[action])
 
     async def show_xp_leaderboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat = update.effective_chat
@@ -164,6 +301,155 @@ class GroupHandlers:
             text, mode, markup = self._compose_cup_leaderboard(chat_id, texts)
             await self.analytics.record("group.cup_leaderboard_refreshed")
         await message.edit_text(text, parse_mode=mode, reply_markup=markup)
+
+    async def _handle_admin_toggle(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        *,
+        promote: bool,
+    ) -> None:
+        chat = update.effective_chat
+        actor = update.effective_user
+        message = update.effective_message
+        if chat is None or actor is None or message is None:
+            return
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        if not await self._is_admin(context, chat.id, actor.id):
+            await message.reply_text(texts.dm_admin_only)
+            return
+
+        target_user = self._resolve_target_from_message(message)
+        if target_user is None and context.args:
+            fetched = await self._fetch_member(context, chat.id, context.args[0])
+            if fetched:
+                target_user = fetched
+        if target_user is None and message.reply_to_message and message.reply_to_message.from_user:
+            target_user = message.reply_to_message.from_user
+        if target_user is None:
+            usage = texts.group_promote_usage if promote else texts.group_demote_usage
+            await message.reply_text(usage)
+            return
+
+        try:
+            if promote:
+                changed = await self.storage.add_admin(
+                    target_user.id,
+                    username=getattr(target_user, "username", None),
+                    full_name=getattr(target_user, "full_name", None),
+                )
+            else:
+                changed = await self.storage.remove_admin(target_user.id)
+        except Exception as exc:
+            LOGGER.error("Failed to toggle admin: %s", exc)
+            await message.reply_text(texts.error_generic)
+            return
+
+        if promote and not changed:
+            await message.reply_text(texts.group_promote_already)
+            return
+        if not promote and not changed:
+            await message.reply_text(texts.group_demote_missing)
+            return
+
+        confirmation = texts.group_promote_success if promote else texts.group_demote_success
+        await message.reply_text(
+            confirmation.format(
+                full_name=target_user.full_name or target_user.username or target_user.id
+            )
+        )
+
+    async def _maybe_handle_panel_response(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> bool:
+        message = update.effective_message
+        chat = update.effective_chat
+        actor = update.effective_user
+        if message is None or chat is None or actor is None:
+            return False
+        pending_map = context.chat_data.get("group_panel_pending")
+        if not isinstance(pending_map, dict) or actor.id not in pending_map:
+            return False
+
+        action = pending_map[actor.id]["action"]
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        if message.text and message.text.lower().strip() == texts.group_panel_cancel_keyword:
+            pending_map.pop(actor.id, None)
+            await message.reply_text(texts.group_panel_cancelled)
+            return True
+
+        if action == "ban":
+            target = self._resolve_target_from_message(message)
+            if target is None:
+                await message.reply_text(texts.group_panel_invalid_target)
+                return True
+            try:
+                await context.bot.ban_chat_member(chat.id, target.id)
+            except Exception as exc:
+                LOGGER.error("Failed to ban %s: %s", target.id, exc)
+                await message.reply_text(texts.group_panel_action_error)
+                return True
+            pending_map.pop(actor.id, None)
+            await message.reply_text(
+                texts.group_panel_ban_success.format(
+                    full_name=target.full_name or target.username or target.id
+                )
+            )
+            return True
+
+        if action == "mute":
+            target = self._resolve_target_from_message(message)
+            if target is None:
+                await message.reply_text(texts.group_panel_invalid_target)
+                return True
+            permissions = ChatPermissions(can_send_messages=False)
+            try:
+                await context.bot.restrict_chat_member(chat.id, target.id, permissions=permissions)
+            except Exception as exc:
+                LOGGER.error("Failed to mute %s: %s", target.id, exc)
+                await message.reply_text(texts.group_panel_action_error)
+                return True
+            pending_map.pop(actor.id, None)
+            await message.reply_text(
+                texts.group_panel_mute_success.format(
+                    full_name=target.full_name or target.username or target.id
+                )
+            )
+            return True
+
+        if action == "add_xp":
+            target = self._resolve_target_from_message(message)
+            if target is None:
+                await message.reply_text(texts.group_panel_invalid_target)
+                return True
+            try:
+                amount = int(message.text.strip())
+            except (TypeError, ValueError):
+                await message.reply_text(texts.group_add_xp_usage)
+                return True
+            try:
+                total = await self.storage.add_xp(
+                    chat.id,
+                    target.id,
+                    amount,
+                    full_name=getattr(target, "full_name", None),
+                    username=getattr(target, "username", None),
+                )
+            except Exception as exc:
+                LOGGER.error("Failed to grant XP via panel: %s", exc)
+                await message.reply_text(texts.error_generic)
+                return True
+            pending_map.pop(actor.id, None)
+            await message.reply_text(
+                texts.group_add_xp_success.format(
+                    full_name=target.full_name or target.username or target.id,
+                    xp=total,
+                )
+            )
+            return True
+
+        return False
+
 
     async def _is_admin(self, context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int) -> bool:
         try:
@@ -257,4 +543,29 @@ class GroupHandlers:
         text = "\n\n".join(lines)
         markup = leaderboard_refresh_keyboard("cups", chat_id, texts)
         return (text, ParseMode.HTML, markup)
+
+    def _resolve_target_from_message(self, message) -> object | None:
+        reply = getattr(message, "reply_to_message", None)
+        if reply and getattr(reply, "from_user", None):
+            return reply.from_user
+        return None
+
+    async def _fetch_member(
+        self,
+        context: ContextTypes.DEFAULT_TYPE,
+        chat_id: int,
+        raw_identifier: str,
+    ) -> object | None:
+        candidate = str(raw_identifier).strip()
+        if not candidate:
+            return None
+        try:
+            target_id = int(candidate.lstrip("@"))
+        except ValueError:
+            return None
+        try:
+            member = await context.bot.get_chat_member(chat_id, target_id)
+        except Exception:
+            return None
+        return getattr(member, "user", None)
 

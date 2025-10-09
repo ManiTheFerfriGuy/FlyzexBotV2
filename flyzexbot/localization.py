@@ -66,6 +66,35 @@ class TextPack:
     group_no_data: str
     group_add_cup_usage: str
     group_add_cup_invalid_format: str
+    group_add_xp_usage: str
+    group_add_xp_success: str
+    group_promote_usage: str
+    group_demote_usage: str
+    group_promote_success: str
+    group_demote_success: str
+    group_promote_already: str
+    group_demote_missing: str
+    group_panel_intro: str
+    group_panel_ban_button: str
+    group_panel_mute_button: str
+    group_panel_add_xp_button: str
+    group_panel_manage_cups_button: str
+    group_panel_manage_admins_button: str
+    group_panel_settings_button: str
+    group_panel_close_button: str
+    group_panel_ban_prompt: str
+    group_panel_mute_prompt: str
+    group_panel_add_xp_prompt: str
+    group_panel_cups_hint: str
+    group_panel_admins_hint: str
+    group_panel_settings_hint: str
+    group_panel_closed: str
+    group_panel_cancel_keyword: str
+    group_panel_cancelled: str
+    group_panel_invalid_target: str
+    group_panel_action_error: str
+    group_panel_ban_success: str
+    group_panel_mute_success: str
     error_generic: str
     glass_panel_caption: str
     admin_list_header: str
@@ -226,6 +255,35 @@ PERSIAN_TEXTS = TextPack(
     group_no_data="هنوز داده‌ای ثبت نشده است.",
     group_add_cup_usage="استفاده: /add_cup عنوان | توضیح | قهرمان,نایب‌قهرمان,سوم",
     group_add_cup_invalid_format="ساختار ورودی صحیح نیست. از جداکننده | استفاده کنید.",
+    group_add_xp_usage="استفاده: /addxp شناسه‌کاربر مقدار (یا در پاسخ به پیام کاربر مقدار را ارسال کنید)",
+    group_add_xp_success="✨ امتیاز {full_name} به {xp} رسید!",
+    group_promote_usage="برای افزودن ادمین، شناسه او را وارد یا به پیام او پاسخ دهید.",
+    group_demote_usage="برای حذف ادمین، شناسه او را وارد یا به پیام او پاسخ دهید.",
+    group_promote_success="🛡️ {full_name} اکنون دسترسی ادمین دارد.",
+    group_demote_success="♻️ دسترسی ادمین {full_name} حذف شد.",
+    group_promote_already="ℹ️ این کاربر از قبل در فهرست ادمین‌هاست.",
+    group_demote_missing="ℹ️ این کاربر در فهرست ادمین‌ها یافت نشد.",
+    group_panel_intro="<b>🛡️ کنترل‌پنل گیلد</b>\nیکی از دکمه‌های شیشه‌ای را برای مدیریت گروه انتخاب کنید.",
+    group_panel_ban_button="بن کردن",
+    group_panel_mute_button="سکوت",
+    group_panel_add_xp_button="افزودن XP",
+    group_panel_manage_cups_button="مدیریت جام‌ها",
+    group_panel_manage_admins_button="ادمین‌ها",
+    group_panel_settings_button="تنظیمات",
+    group_panel_close_button="بستن",
+    group_panel_ban_prompt="برای بن کردن، به پیام کاربر پاسخ دهید یا عبارت «cancel» برای لغو ارسال کنید.",
+    group_panel_mute_prompt="برای بی‌صدا کردن، به پیام کاربر پاسخ دهید یا «cancel» را برای لغو بفرستید.",
+    group_panel_add_xp_prompt="به پیام کاربر پاسخ داده و مقدار XP را ارسال کنید. برای لغو «cancel» را بنویسید.",
+    group_panel_cups_hint="برای ثبت جام جدید از دستور /add_cup استفاده کنید.",
+    group_panel_admins_hint="برای مدیریت ادمین‌ها از دستورات /promote و /demote بهره ببرید.",
+    group_panel_settings_hint="برای تنظیمات بیشتر به پنل وب یا پیام‌های خصوصی مراجعه کنید.",
+    group_panel_closed="پنل بسته شد.",
+    group_panel_cancel_keyword="cancel",
+    group_panel_cancelled="✅ عملیات لغو شد.",
+    group_panel_invalid_target="لطفاً به پیام کاربر موردنظر پاسخ دهید.",
+    group_panel_action_error="⚠️ انجام عملیات ممکن نشد. بعداً امتحان کنید.",
+    group_panel_ban_success="🚫 {full_name} از گروه حذف شد.",
+    group_panel_mute_success="🔇 {full_name} بی‌صدا شد.",
     error_generic="⚠️ خطایی رخ داد. لطفاً مجدداً تلاش کنید.",
     glass_panel_caption=(
         "<i>طراحی شیشه‌ای با پس‌زمینه‌ی محو و دکمه‌های درخشان برای تجربه‌ای مدرن.</i>"
@@ -414,6 +472,35 @@ ENGLISH_TEXTS = TextPack(
     group_no_data="No records yet.",
     group_add_cup_usage="Usage: /add_cup title | description | gold,silver,bronze",
     group_add_cup_invalid_format="Invalid format. Separate items with |",
+    group_add_xp_usage="Usage: /addxp user_id amount (or reply to a user with the amount)",
+    group_add_xp_success="✨ {full_name} now has {xp} XP!",
+    group_promote_usage="Reply to the user or provide their numeric ID to promote them.",
+    group_demote_usage="Reply to the user or provide their numeric ID to demote them.",
+    group_promote_success="🛡️ {full_name} is now an admin.",
+    group_demote_success="♻️ {full_name} is no longer an admin.",
+    group_promote_already="ℹ️ That user is already listed as an admin.",
+    group_demote_missing="ℹ️ That user was not found among the admins.",
+    group_panel_intro="<b>🛡️ Guild control panel</b>\nChoose a glass button to manage the group.",
+    group_panel_ban_button="Ban",
+    group_panel_mute_button="Mute",
+    group_panel_add_xp_button="Add XP",
+    group_panel_manage_cups_button="Cups",
+    group_panel_manage_admins_button="Admins",
+    group_panel_settings_button="Settings",
+    group_panel_close_button="Close",
+    group_panel_ban_prompt="Reply to the member you want to ban, or type 'cancel' to abort.",
+    group_panel_mute_prompt="Reply to the member you want to mute, or type 'cancel' to abort.",
+    group_panel_add_xp_prompt="Reply to the member and send the XP amount. Type 'cancel' to abort.",
+    group_panel_cups_hint="Use /add_cup to register a new trophy run.",
+    group_panel_admins_hint="Use /promote and /demote to adjust admin privileges.",
+    group_panel_settings_hint="For advanced settings open the web dashboard or DM panel.",
+    group_panel_closed="Panel closed.",
+    group_panel_cancel_keyword="cancel",
+    group_panel_cancelled="✅ Action cancelled.",
+    group_panel_invalid_target="Please reply to the target member's message.",
+    group_panel_action_error="⚠️ The action could not be completed. Try again later.",
+    group_panel_ban_success="🚫 {full_name} has been banned from the group.",
+    group_panel_mute_success="🔇 {full_name} has been muted.",
     error_generic="⚠️ Something went wrong. Please try again.",
     glass_panel_caption=(
         "<i>A modern glassmorphism-inspired interface with frosted cards and vibrant buttons.</i>"
