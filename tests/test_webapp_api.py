@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -85,4 +87,98 @@ def test_admin_crud_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
         # Get admin again -> 404
         r = client.get("/api/admins/9999", headers=headers)
+        assert r.status_code == 404
+
+
+def test_pending_applications_filters_and_dashboard(monkeypatch: pytest.MonkeyPatch) -> None:
+    from cryptography.fernet import Fernet
+
+    key = Fernet.generate_key().decode("utf-8")
+    monkeypatch.setenv("BOT_SECRET_KEY", key)
+    monkeypatch.setenv("ADMIN_API_KEY", "test_admin_key")
+
+    headers = {"X-Admin-Api-Key": "test_admin_key"}
+
+    with TestClient(webapp) as client:
+        storage = client.app.state.storage
+
+        async def _seed() -> None:
+            await storage.add_application(
+                1001,
+                full_name="Alpha One",
+                username="alpha",
+                answer="First answer",
+                language_code="fa",
+                responses=[],
+            )
+            await storage.add_application(
+                1002,
+                full_name="Beta Two",
+                username="beta",
+                answer="Second insight",
+                language_code="en",
+                responses=[],
+            )
+            await storage.add_application(
+                1003,
+                full_name="Gamma Three",
+                username="gamma",
+                answer="Third detail",
+                language_code="fa",
+                responses=[],
+            )
+
+        asyncio.run(_seed())
+
+        # Provide deterministic ordering for tests
+        storage._state.applications[1001].created_at = "2023/01/01 · 09:00:00 UTC"  # type: ignore[attr-defined]
+        storage._state.applications[1002].created_at = "2023/01/02 · 09:00:00 UTC"  # type: ignore[attr-defined]
+        storage._state.applications[1003].created_at = "2023/01/03 · 09:00:00 UTC"  # type: ignore[attr-defined]
+        asyncio.run(storage.save())
+
+        params = {"limit": 1, "sort": "recent"}
+        r = client.get("/api/applications/pending", headers=headers, params=params)
+        assert r.status_code == 200
+        payload = r.json()
+        assert payload["total"] == 3
+        assert len(payload["applications"]) == 1
+        assert payload["applications"][0]["user_id"] == 1003
+
+        params = {"language": ["fa"], "sort": "oldest"}
+        r = client.get("/api/applications/pending", headers=headers, params=params)
+        assert r.status_code == 200
+        payload = r.json()
+        assert payload["total"] == 2
+        assert [app["user_id"] for app in payload["applications"]] == [1001, 1003]
+
+        params = {"search": "beta"}
+        r = client.get("/api/applications/pending", headers=headers, params=params)
+        assert r.status_code == 200
+        payload = r.json()
+        assert payload["total"] == 1
+        assert payload["applications"][0]["user_id"] == 1002
+
+        r = client.get("/api/applications/1002", headers=headers)
+        assert r.status_code == 200
+        detail = r.json()
+        assert detail["application"]["user_id"] == 1002
+        assert detail["history"]["status"] == "pending"
+
+        # Mark two applications as decided to exercise dashboard aggregation
+        asyncio.run(storage.pop_application(1002))
+        asyncio.run(storage.mark_application_status(1002, "approved"))
+        asyncio.run(storage.pop_application(1003))
+        asyncio.run(storage.mark_application_status(1003, "denied"))
+
+        r = client.get("/api/applications/dashboard", headers=headers)
+        assert r.status_code == 200
+        dashboard = r.json()
+        assert dashboard["pending"] == 1
+        assert dashboard["approved"] == 1
+        assert dashboard["denied"] == 1
+        assert dashboard["pending_by_language"]["fa"] == 1
+        assert dashboard["approval_rate"] == pytest.approx(0.5)
+
+        # Requesting unknown application should yield 404
+        r = client.get("/api/applications/9999", headers=headers)
         assert r.status_code == 404
