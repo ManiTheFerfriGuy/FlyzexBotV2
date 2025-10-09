@@ -321,17 +321,18 @@ class Storage:
         if not self._persistence_enabled:
             return
 
-        signature = self._compute_snapshot_signature()
-        if signature == self._snapshot_signature:
-            return
+        async with self._lock:
+            signature = self._compute_snapshot_signature()
+            if signature == self._snapshot_signature:
+                return
 
-        if signature is None:
-            if self._snapshot_signature is not None:
-                self._state = StorageState()
-            self._snapshot_signature = None
-            return
+            if signature is None:
+                if self._snapshot_signature is not None:
+                    self._state = StorageState()
+                self._snapshot_signature = None
+                return
 
-        await self.load()
+            await self.load()
 
     async def add_admin(
         self,
