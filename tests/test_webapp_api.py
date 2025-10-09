@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -197,6 +198,40 @@ def test_prefixed_paths_are_served(monkeypatch: pytest.MonkeyPatch) -> None:
         prefixed_response = client.get("/demo/api/leaderboard/xp/top?limit=3")
         assert prefixed_response.status_code == 200
         assert prefixed_response.json()["leaderboard"] == []
+
+
+def test_global_xp_top_uses_encrypted_storage(monkeypatch: pytest.MonkeyPatch) -> None:
+    from cryptography.fernet import Fernet
+
+    key = Fernet.generate_key().decode("utf-8")
+    monkeypatch.setenv("BOT_SECRET_KEY", key)
+
+    with TestClient(webapp) as client:
+        storage = client.app.state.storage
+        settings = client.app.state.settings
+        storage_path = settings.storage.path
+
+        async def _seed() -> None:
+            await storage.add_xp(2001, 555, 15, full_name="Alpha One")
+            await storage.add_xp(2002, 666, 25, username="@beta")
+            await storage.add_xp(2003, 555, 30)
+
+        asyncio.run(_seed())
+
+    payload = storage_path.read_bytes()
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(payload.decode("utf-8"))
+
+    with TestClient(webapp) as client:
+        response = client.get("/api/leaderboard/xp/top?limit=5")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 2
+        assert [entry["user_id"] for entry in data["leaderboard"]] == [555, 666]
+        assert data["leaderboard"][0]["xp"] == 45
+        assert data["leaderboard"][0]["full_name"] == "Alpha One"
+        assert data["leaderboard"][1]["xp"] == 25
+        assert data["leaderboard"][1]["username"] == "beta"
 
         plain_response = client.get("/api/leaderboard/xp/top?limit=3")
         assert plain_response.status_code == 200

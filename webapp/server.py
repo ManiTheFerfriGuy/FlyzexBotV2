@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from flyzexbot.config import Settings
+from flyzexbot.services.security import EncryptionManager
 from flyzexbot.services.storage import Storage, configure_timezone
 
 from .api import router as api_router
@@ -165,7 +166,7 @@ async def lifespan(app: FastAPI):
 
     storage = Storage(
         settings.storage.path,
-        None,
+        encryption,
         backup_path=settings.storage.backup_path,
     )
 
@@ -181,7 +182,7 @@ async def lifespan(app: FastAPI):
     bot_token = os.getenv(settings.telegram.bot_token_env)
     avatar_service = AvatarService(bot_token)
 
-    app.state.storage_read_only = False
+    app.state.storage_read_only = storage_read_only
     app.state.settings = settings
     app.state.storage = storage
     app.state.avatar_service = avatar_service
