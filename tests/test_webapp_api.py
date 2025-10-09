@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import asyncio
@@ -17,7 +16,7 @@ def cleanup_storage_files():
     # Ensure test-created storage artifacts are removed after tests
     yield
     for p in (
-        Path("data/storage.json.enc"),
+        Path("data/storage.json"),
         Path("data/storage.sqlite"),
     ):
         try:
@@ -48,11 +47,6 @@ def test_protected_endpoints_require_api_key(monkeypatch: pytest.MonkeyPatch) ->
 
 def test_admin_crud_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     # Configure secrets for lifespan
-    # cryptography is already a project dependency
-    from cryptography.fernet import Fernet
-
-    key = Fernet.generate_key().decode("utf-8")
-    monkeypatch.setenv("BOT_SECRET_KEY", key)
     monkeypatch.setenv("ADMIN_API_KEY", "test_admin_key")
 
     headers = {"X-Admin-Api-Key": "test_admin_key"}
@@ -92,10 +86,6 @@ def test_admin_crud_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_pending_applications_filters_and_dashboard(monkeypatch: pytest.MonkeyPatch) -> None:
-    from cryptography.fernet import Fernet
-
-    key = Fernet.generate_key().decode("utf-8")
-    monkeypatch.setenv("BOT_SECRET_KEY", key)
     monkeypatch.setenv("ADMIN_API_KEY", "test_admin_key")
 
     headers = {"X-Admin-Api-Key": "test_admin_key"}
@@ -186,11 +176,6 @@ def test_pending_applications_filters_and_dashboard(monkeypatch: pytest.MonkeyPa
 
 
 def test_prefixed_paths_are_served(monkeypatch: pytest.MonkeyPatch) -> None:
-    from cryptography.fernet import Fernet
-
-    key = Fernet.generate_key().decode("utf-8")
-    monkeypatch.setenv("BOT_SECRET_KEY", key)
-
     with TestClient(webapp) as client:
         client.app.state.base_path = "/demo"
         client.app.root_path = "/demo"
@@ -200,12 +185,7 @@ def test_prefixed_paths_are_served(monkeypatch: pytest.MonkeyPatch) -> None:
         assert prefixed_response.json()["leaderboard"] == []
 
 
-def test_global_xp_top_uses_encrypted_storage(monkeypatch: pytest.MonkeyPatch) -> None:
-    from cryptography.fernet import Fernet
-
-    key = Fernet.generate_key().decode("utf-8")
-    monkeypatch.setenv("BOT_SECRET_KEY", key)
-
+def test_global_xp_top_persists_plain_json(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestClient(webapp) as client:
         storage = client.app.state.storage
         settings = client.app.state.settings
@@ -218,9 +198,10 @@ def test_global_xp_top_uses_encrypted_storage(monkeypatch: pytest.MonkeyPatch) -
 
         asyncio.run(_seed())
 
-    payload = storage_path.read_bytes()
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(payload.decode("utf-8"))
+    payload = json.loads(storage_path.read_text(encoding="utf-8"))
+    assert "xp" in payload
+    assert payload["xp"]["2001"]["555"] == 15
+    assert payload["xp"]["2003"]["555"] == 30
 
     with TestClient(webapp) as client:
         response = client.get("/api/leaderboard/xp/top?limit=5")

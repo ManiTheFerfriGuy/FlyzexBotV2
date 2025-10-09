@@ -12,7 +12,6 @@ import yaml
 @dataclass
 class TelegramConfig:
     bot_token_env: str
-    secret_key_env: str
     owner_id: int
     application_review_chat: Optional[int]
 
@@ -98,7 +97,6 @@ class Settings:
 
         telegram = TelegramConfig(
             bot_token_env=data["telegram"]["bot_token_env"],
-            secret_key_env=data["telegram"].get("secret_key_env", "BOT_SECRET_KEY"),
             owner_id=int(data["telegram"]["owner_id"]),
             application_review_chat=data["telegram"].get("application_review_chat"),
         )
@@ -167,22 +165,5 @@ class Settings:
             )
         return token
 
-    def _get_secret(self, env_name: str) -> bytes:
-        key = os.getenv(env_name)
-        if not key:
-            raise RuntimeError(
-                f"Secret key not found in environment variable '{env_name}'."
-            )
-        return key.encode("utf-8")
-
-    def get_bot_secret_key(self) -> bytes:
-        return self._get_secret(self.telegram.secret_key_env)
-
-    def get_webapp_secret_key(self) -> bytes:
-        return self.get_bot_secret_key()
-
-    def get_secret_key(self) -> bytes:
-        """Backward compatible alias for bot storage secret accessor."""
-
-        return self.get_bot_secret_key()
+    # Secret key accessors removed as storage is no longer encrypted.
 

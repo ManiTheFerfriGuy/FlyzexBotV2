@@ -15,8 +15,6 @@ from typing import Any, Dict, List, Optional
 
 from aiofiles import open as aioopen
 
-from .security import EncryptionManager
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -248,12 +246,10 @@ class Storage:
     def __init__(
         self,
         path: Path,
-        encryption: Optional[EncryptionManager] = None,
         *,
         backup_path: Optional[Path] = None,
     ) -> None:
         self._path = path
-        self._encryption = encryption
         self._lock = asyncio.Lock()
         self._state = StorageState()
         self._backup_path = backup_path
@@ -274,20 +270,10 @@ class Storage:
             return
 
         async with aioopen(self._path, "rb") as file:
-            encrypted = await file.read()
+            payload_bytes = await file.read()
 
-        if not encrypted:
+        if not payload_bytes:
             return
-
-        if self._encryption is not None:
-            decrypted = await self._encryption.decrypt(encrypted)
-            if decrypted is None:
-                raise RuntimeError(
-                    "Failed to decrypt storage file. Check the secret key."
-                )
-            payload_bytes = decrypted
-        else:
-            payload_bytes = encrypted
 
         try:
             payload = json.loads(payload_bytes.decode("utf-8"))
@@ -727,10 +713,7 @@ class Storage:
         return payload
 
     async def _write_snapshot(self, payload: bytes) -> None:
-        if self._encryption is not None:
-            to_write = await self._encryption.encrypt(payload)
-        else:
-            to_write = payload
+        to_write = payload
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
         if self._path.suffix:

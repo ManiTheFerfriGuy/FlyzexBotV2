@@ -12,7 +12,7 @@ from flyzexbot.handlers.dm import DMHandlers
 from flyzexbot.handlers.group import GroupHandlers
 from flyzexbot.localization import PERSIAN_TEXTS
 from flyzexbot.services.analytics import AnalyticsTracker
-from flyzexbot.services.security import EncryptionManager, RateLimitGuard
+from flyzexbot.services.security import RateLimitGuard
 from flyzexbot.services.storage import Storage, configure_timezone
 
 CONFIG_PATH = Path("config/settings.yaml")
@@ -45,10 +45,8 @@ async def build_application(settings: Settings) -> None:
     except Exception:
         logging.getLogger(__name__).warning("Failed to apply configured timezone; using default.")
 
-    encryption = EncryptionManager(settings.get_bot_secret_key())
     storage = Storage(
         settings.storage.path,
-        encryption,
         backup_path=settings.storage.backup_path,
     )
     await storage.load()

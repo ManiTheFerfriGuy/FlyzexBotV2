@@ -9,16 +9,11 @@ import pytest
 
 import flyzexbot.services.storage as storage_module
 
-cryptography = pytest.importorskip("cryptography.fernet")
-
-from flyzexbot.services.security import EncryptionManager
 from flyzexbot.services.storage import ApplicationResponse, Storage
 
 
 def test_admin_management(tmp_path: Path) -> None:
-    key = cryptography.Fernet.generate_key()
-    encryption = EncryptionManager(key)
-    storage = Storage(tmp_path / "store.enc", encryption)
+    storage = Storage(tmp_path / "store.json")
     
     async def runner() -> None:
         await storage.load()
@@ -39,8 +34,7 @@ def test_admin_management(tmp_path: Path) -> None:
 
 
 def test_application_flow(tmp_path: Path) -> None:
-    key = cryptography.Fernet.generate_key()
-    storage = Storage(tmp_path / "store.enc", EncryptionManager(key))
+    storage = Storage(tmp_path / "store.json")
     
     async def runner() -> None:
         await storage.load()
@@ -87,8 +81,7 @@ def test_application_flow(tmp_path: Path) -> None:
 
 
 def test_xp_and_cups(tmp_path: Path) -> None:
-    key = cryptography.Fernet.generate_key()
-    storage = Storage(tmp_path / "store.enc", EncryptionManager(key))
+    storage = Storage(tmp_path / "store.json")
 
     async def runner() -> None:
         await storage.load()
@@ -112,8 +105,7 @@ def test_xp_and_cups(tmp_path: Path) -> None:
 
 
 def test_application_question_overrides(tmp_path: Path) -> None:
-    key = cryptography.Fernet.generate_key()
-    storage = Storage(tmp_path / "store.enc", EncryptionManager(key))
+    storage = Storage(tmp_path / "store.json")
 
     async def runner() -> None:
         await storage.load()
@@ -146,8 +138,7 @@ def test_application_question_overrides(tmp_path: Path) -> None:
 
 
 def test_snapshot_write_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    key = cryptography.Fernet.generate_key()
-    storage = Storage(tmp_path / "store.enc", EncryptionManager(key))
+    storage = Storage(tmp_path / "store.json")
 
     async def runner() -> None:
         await storage.load()
@@ -198,11 +189,9 @@ def test_snapshot_write_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 
 def test_sqlite_backup(tmp_path: Path) -> None:
-    key = cryptography.Fernet.generate_key()
     backup_path = tmp_path / "backup.sqlite"
     storage = Storage(
-        tmp_path / "store.enc",
-        EncryptionManager(key),
+        tmp_path / "store.json",
         backup_path=backup_path,
     )
 
@@ -263,9 +252,8 @@ def test_sqlite_backup(tmp_path: Path) -> None:
 
 
 def test_disable_persistence_prevents_disk_writes(tmp_path: Path) -> None:
-    key = cryptography.Fernet.generate_key()
-    storage_path = tmp_path / "store.enc"
-    storage = Storage(storage_path, EncryptionManager(key))
+    storage_path = tmp_path / "store.json"
+    storage = Storage(storage_path)
     storage.disable_persistence()
 
     async def runner() -> None:

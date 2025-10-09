@@ -1,14 +1,14 @@
 # 📘 Project Best Practices
 
 ## 1. Project Purpose
-FlyzexBot is an asynchronous Telegram bot with a glassmorphism UI and a companion FastAPI web app. It manages a guild onboarding process (applications, approvals/denials), admin management, XP leaderboards, and cups (competitions). Data is encrypted at rest and optionally exported to an SQLite backup. The project is primarily Persian-first with English support, and emphasizes safe rendering of user-generated content and robust async I/O.
+FlyzexBot is an asynchronous Telegram bot with a glassmorphism UI and a companion FastAPI web app. It manages a guild onboarding process (applications, approvals/denials), admin management, XP leaderboards, and cups (competitions). Data is persisted as JSON (with optional SQLite backups). The project is primarily Persian-first with English support, and emphasizes safe rendering of user-generated content and robust async I/O.
 
 ## 2. Project Structure
 - Root
   - `bot.py`: Application entrypoint for the Telegram bot (python-telegram-bot v20 async). Builds handlers, configures analytics, storage, rate limits, and registers command handlers.
   - `requirements.txt`: Python dependencies.
   - `README.md`: Setup and run instructions (FA).
-  - `data/`: Encrypted storage and SQLite backup output (ignored by VCS, .gitkeep present).
+  - `data/`: JSON storage and SQLite backup output (ignored by VCS, .gitkeep present).
   - `config/`
     - `settings.example.yaml`: Example configuration (copy to `settings.yaml`).
   - `cachetools/`: Local package stub; tests ensure expected behavior for LRUCache.pop semantics.
@@ -24,8 +24,8 @@ FlyzexBot is an asynchronous Telegram bot with a glassmorphism UI and a companio
     - `dm.py`: DM flows (application form, admin panel, language menu, status). Uses safe HTML and analytics.
     - `group.py`: Group flows (XP tracking, cups, leaderboards, admin checks).
   - `services/`
-    - `storage.py`: Encrypted JSON state, dataclass models, async save/load, SQLite backup, statistics.
-    - `security.py`: Fernet-based EncryptionManager, RateLimitGuard (burst token bucket).
+    - `storage.py`: JSON state, dataclass models, async save/load, SQLite backup, statistics.
+    - `security.py`: RateLimitGuard (burst token bucket).
     - `analytics.py`: Async in-memory aggregator with periodic logging snapshots and a NullAnalytics no-op.
   - `ui/`
     - `keyboards.py`: Inline keyboards for DM/admin/leaderboards, using localization text packs.
@@ -43,7 +43,7 @@ Separation of concerns:
   - Async tests use `asyncio.run(...)` or anyio fixture (`@pytest.mark.anyio("asyncio")`).
   - Mocks: `unittest.mock.AsyncMock`, `SimpleNamespace`, and monkeypatching for I/O (e.g., `aioopen`).
 - Coverage targets (guidance):
-  - Storage invariants: encryption, atomic writes, language-aware questions, XP/cups, statistics, SQLite export.
+  - Storage invariants: atomic writes, language-aware questions, XP/cups, statistics, SQLite export.
   - Handler flows: DM application multi-step, admin panel actions, language menu, group XP/cups, admin checks.
   - Security/escaping: HTML-escape any user-generated content before rendering with `ParseMode.HTML`.
 - Structure & naming:
@@ -92,7 +92,7 @@ Separation of concerns:
   - Owner-only actions for promote/demote; admins can review applications and view members.
   - Use inline keyboards defined in `ui/keyboards.py` and localization strings.
 - Storage
-  - Encrypted JSON blob via Fernet; atomic writes using a temporary path then `os.replace`.
+  - UTF-8 JSON snapshot written atomically using a temporary path then `os.replace`.
   - Optional SQLite backup for analytics/reporting; schema fully recreated on each export.
   - Statistics: status counts, language distribution, recent updates, average pending answer length.
 - Analytics
@@ -125,8 +125,7 @@ Separation of concerns:
 ## 7. Tools & Dependencies
 - Core
   - python-telegram-bot[rate-limiter,callback-data]==20.7 — async bot engine, rate limiting, callback data support.
-  - cryptography (Fernet) — encryption of storage payloads.
-  - aiofiles — async file I/O for encrypted storage writes.
+  - aiofiles — async file I/O for storage writes.
   - PyYAML — configuration parsing for `settings.yaml`.
   - FastAPI + Uvicorn — WebApp with static UI and JSON APIs.
   - pytest — unit testing, async support via anyio/asyncio.
@@ -134,7 +133,7 @@ Separation of concerns:
 - Setup
   - `pip install -r requirements.txt`
   - Copy `config/settings.example.yaml` to `config/settings.yaml` and adjust.
-  - Set environment variables: `BOT_TOKEN` (or custom per `telegram.bot_token_env`) and `BOT_SECRET_KEY` (or `telegram.secret_key_env`). The web app reuses the bot secret, so keep it stable to access encrypted data.
+  - Set environment variables: `BOT_TOKEN` (or custom per `telegram.bot_token_env`) and optionally `ADMIN_API_KEY` for web access control.
   - Run bot: `python bot.py`
   - Run webapp: `uvicorn webapp.server:app --host 0.0.0.0 --port 8080`
   - Tests: `pytest`
