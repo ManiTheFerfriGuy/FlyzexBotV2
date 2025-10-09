@@ -123,6 +123,7 @@ class StorageState:
     applications: Dict[int, Application] = field(default_factory=dict)
     application_history: Dict[int, ApplicationHistoryEntry] = field(default_factory=dict)
     xp: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    xp_profiles: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     cups: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
     application_questions: Dict[str, Dict[str, str]] = field(default_factory=dict)
 
@@ -148,6 +149,14 @@ class StorageState:
                 str(k): vars(v) for k, v in self.application_history.items()
             },
             "xp": self.xp,
+            "xp_profiles": {
+                str(user_id): {
+                    key: value
+                    for key, value in profile.items()
+                    if value not in (None, "")
+                }
+                for user_id, profile in self.xp_profiles.items()
+            },
             "cups": self.cups,
             "application_questions": {
                 str(language): {
@@ -198,6 +207,17 @@ class StorageState:
             applications=applications,
             application_history=application_history,
             xp={k: {user: int(score) for user, score in v.items()} for k, v in payload.get("xp", {}).items()},
+            xp_profiles={
+                str(user_id): {
+                    "username": profile.get("username"),
+                    "full_name": profile.get("full_name"),
+                    "updated_at": profile.get("updated_at"),
+                    "last_chat": profile.get("last_chat"),
+                    "chats": [str(chat) for chat in profile.get("chats", []) if chat],
+                }
+                for user_id, profile in payload.get("xp_profiles", {}).items()
+                if isinstance(profile, dict)
+            },
             cups={
                 k: [
                     {
@@ -368,6 +388,11 @@ class Storage:
             username = username or application.username
             full_name = full_name or application.full_name
 
+        xp_profile = self._state.xp_profiles.get(str(user_id))
+        if xp_profile:
+            username = username or xp_profile.get("username")
+            full_name = full_name or xp_profile.get("full_name")
+
         return {
             "user_id": user_id,
             "username": username,
@@ -387,6 +412,10 @@ class Storage:
         if application:
             username = username or application.username
             full_name = full_name or application.full_name
+        xp_profile = self._state.xp_profiles.get(str(user_id))
+        if xp_profile:
+            username = username or xp_profile.get("username")
+            full_name = full_name or xp_profile.get("full_name")
         return {"username": username, "full_name": full_name}
 
     def _normalise_language_key(self, language_code: Optional[str]) -> str:
@@ -584,14 +613,48 @@ class Storage:
             ],
         }
 
-    async def add_xp(self, chat_id: int, user_id: int, amount: int) -> int:
+    async def add_xp(
+        self,
+        chat_id: int,
+        user_id: int,
+        amount: int,
+        *,
+        full_name: Optional[str] = None,
+        username: Optional[str] = None,
+    ) -> int:
         async with self._lock:
             chat_key = str(chat_id)
             user_key = str(user_id)
             self._state.xp.setdefault(chat_key, {})
             self._state.xp[chat_key][user_key] = self._state.xp[chat_key].get(user_key, 0) + amount
+
+            profile = self._state.xp_profiles.setdefault(user_key, {})
+            normalized_username = username.strip() if isinstance(username, str) else None
+            if normalized_username:
+                normalized_username = normalized_username.lstrip("@") or None
+            normalized_full_name = full_name.strip() if isinstance(full_name, str) else None
+
+            if normalized_username:
+                profile["username"] = normalized_username
+            if normalized_full_name:
+                profile["full_name"] = normalized_full_name
+
+            chats = profile.setdefault("chats", [])
+            if str(chat_key) not in chats:
+                chats.append(str(chat_key))
+            profile["last_chat"] = chat_key
+            profile["updated_at"] = format_timestamp()
+
         await self.save()
-        LOGGER.debug("xp_added", extra={"chat_id": chat_id, "user_id": user_id, "amount": amount})
+        LOGGER.debug(
+            "xp_added",
+            extra={
+                "chat_id": chat_id,
+                "user_id": user_id,
+                "amount": amount,
+                "username": username,
+            },
+        )
         return self._state.xp[chat_key][user_key]
 
     def get_xp_leaderboard(self, chat_id: int, limit: int) -> List[tuple[str, int]]:
