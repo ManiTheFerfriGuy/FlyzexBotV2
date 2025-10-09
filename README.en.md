@@ -69,6 +69,13 @@ python bot.py
 
 Make sure the same value is provided for both `BOT_SECRET_KEY` and `WEBAPP_SECRET_KEY` whenever you interact with encrypted data.
 
+> **Tip:** the encrypted storage is written to the path configured in
+> `config/settings.yaml` (defaults to `data/storage.json.enc`). Generate the
+> key once, store it in a safe place, and reuse it for every future run. If
+> the bot fails to start with `Failed to decrypt storage file. Check the
+> secret key.`, it means the existing storage was encrypted with a different
+> key—restore the original key or remove the storage file to start fresh.
+
 ## Running the Admin WebApp
 The repository ships with a FastAPI application that exposes pending applications, XP leaderboard, and cup leaderboard.
 
