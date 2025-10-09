@@ -93,8 +93,8 @@ async def test_dm_application_rendering_escapes_html() -> None:
 @pytest.mark.parametrize(
     "language_code,expected_xp_title,expected_cup_title,expected_separator",
     [
-        ("fa", "🏆 جدول تجربه اعضای فعال", "🥇 جدول جام‌های گیلد", "، "),
-    ("en", "🏆 Experience leaderboard", "🥇 Guild cups leaderboard", ", "),
+        ("fa", "🏆 جدول امتیاز اعضای فعال", "🥇 جدول افتخارات گیلد", "، "),
+        ("en", "🏆 XP board for active members", "🥇 Guild trophy board", ", "),
     ],
 )
 async def test_group_leaderboards_escape_user_generated_content(

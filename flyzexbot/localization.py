@@ -151,30 +151,30 @@ class TextPack:
 
 PERSIAN_TEXTS = TextPack(
     dm_welcome=(
-        "<b>🪟 به پنل شیشه‌ای فلایزکس خوش آمدید!</b>\n\n"
-        "برای پیوستن به گیلد، روی دکمه زیر کلیک کنید."
+        "<b>🪟 سلام! خوشحالیم به پنل شیشه‌ای فلایزکس سر زدی.</b>\n\n"
+        "برای شروع فقط روی دکمه پایین بزن تا درخواستت رو با هم جلو ببریم."
     ),
-    dm_apply_button="درخواست عضویت در گیلد",
-    dm_open_webapp_button="ورود به پنل وب",
-    dm_admin_panel_button="ورود به پنل ادمین",
-    dm_status_button="مشاهده وضعیت",
-    dm_withdraw_button="لغو درخواست",
+    dm_apply_button="شروع درخواست عضویت",
+    dm_open_webapp_button="ورود به داشبورد وب",
+    dm_admin_panel_button="رفتن به پنل ادمین",
+    dm_status_button="دیدن وضعیت درخواست",
+    dm_withdraw_button="انصراف از درخواست",
     dm_application_started=(
-        "📝 آماده‌اید برای پیوستن به گیلد؟ در چند سوال کوتاه با ما بیشتر آشنا شوید!\n"
-        "برای لغو، دستور /cancel را ارسال کنید."
+        "📝 بزن بریم! چند سوال کوتاه می‌پرسیم تا بهتر آشنات بشیم.\n"
+        "هر وقت خواستی منصرف بشی، فقط /cancel رو بفرست."
     ),
-    dm_application_question="۱️⃣ نقش مورد علاقه‌تان در گیلد چیست؟",
+    dm_application_question="۱️⃣ دوست داری تو گیلد چه نقشی داشته باشی؟",
     dm_application_received=(
-        "✅ درخواست شما ثبت شد! پس از بررسی نتیجه اطلاع‌رسانی خواهد شد.\n"
-        "برای پیگیری می‌توانید از دکمه «مشاهده وضعیت» استفاده کنید."
+        "✅ درخواستت رسید! بعد از بررسی بهت خبر می‌دیم.\n"
+        "اگه خواستی پیگیری کنی، از دکمه «دیدن وضعیت درخواست» استفاده کن."
     ),
     dm_application_duplicate=(
-        "ℹ️ درخواست شما قبلاً ثبت شده و در حال بررسی است."
+        "ℹ️ درخواستت قبلاً ثبت شده و همین الان هم در حال بررسیه."
     ),
     dm_application_already_member=(
-        "ℹ️ شما هم‌اکنون عضو گیلد هستید و نیازی به ثبت درخواست جدید نیست."
+        "ℹ️ تو همین حالا عضو گیلدی و لازم نیست درخواست تازه‌ای بفرستی."
     ),
-    dm_application_role_prompt="۱️⃣ نقش مورد علاقه‌تان در گیلد چیست؟ (تاجر، مبارز، کاوشگر، پشتیبان)",
+    dm_application_role_prompt="۱️⃣ دوست داری تو گیلد چه نقشی داشته باشی؟ (تاجر، مبارز، کاوشگر، پشتیبان)",
     dm_application_role_options={
         "trader": ["تاجر", "trader"],
         "fighter": ["مبارز", "fighter"],
@@ -182,168 +182,168 @@ PERSIAN_TEXTS = TextPack(
         "support": ["پشتیبان", "support"],
     },
     dm_application_followup_prompts={
-        "trader": "۲️⃣ چه تجربه‌ای در معامله‌گری یا مدیریت منابع دارید؟",
-        "fighter": "۲️⃣ سبک مبارزه یا استراتژی مورد علاقه‌تان چیست؟",
-        "explorer": "۲️⃣ چه نوع ماجراجویی یا اکتشافی را بیشتر دوست دارید؟",
-        "support": "۲️⃣ چگونه از هم‌تیمی‌های خود پشتیبانی می‌کنید؟",
+        "trader": "۲️⃣ از تجربه‌هات در معامله یا مدیریت منابع برامون بگو.",
+        "fighter": "۲️⃣ چه سبکی از نبرد یا استراتژی برات جذابه؟",
+        "explorer": "۲️⃣ چه جور ماجراجویی یا اکتشافی رو بیشتر دوست داری؟",
+        "support": "۲️⃣ معمولاً چطور به هم‌تیمی‌هات نیرو می‌دی؟",
     },
-    dm_application_goals_prompt="۳️⃣ با پیوستن به گیلد می‌خواهید به چه دستاوردی برسید؟",
-    dm_application_availability_prompt="۴️⃣ معمولاً چه زمان‌هایی آنلاین هستید یا می‌توانید مشارکت کنید؟",
-    dm_application_summary_title="<b>📋 خلاصه پاسخ‌های شما</b>",
+    dm_application_goals_prompt="۳️⃣ با پیوستن به گیلد دنبال چه هدف یا تجربه‌ای هستی؟",
+    dm_application_availability_prompt="۴️⃣ معمولاً کی‌ها آنلاین می‌شی یا فرصت همراهی داری؟",
+    dm_application_summary_title="<b>📋 خلاصه جواب‌هات</b>",
     dm_application_summary_item="• <b>{question}</b>\n  {answer}",
-    dm_application_invalid_choice="لطفاً یکی از گزینه‌های معتبر را وارد کنید: {options}",
-    dm_admin_only="⛔️ این بخش فقط برای ادمین‌هاست.",
-    dm_no_pending="درخواستی برای بررسی وجود ندارد.",
+    dm_application_invalid_choice="یکی از گزینه‌های پیشنهادی رو انتخاب کن: {options}",
+    dm_admin_only="⛔️ این بخش مخصوص ادمین‌هاست.",
+    dm_no_pending="فعلاً درخواستی برای بررسی نداریم.",
     dm_application_item=(
         "<b>کاربر:</b> {full_name} ({user_id})\n"
         "<b>نام کاربری:</b> {username}\n"
         "<b>پاسخ‌ها:</b>\n{answers}\n"
-        "<b>زمان:</b> {created_at}"
+        "<b>زمان ثبت:</b> {created_at}"
     ),
     dm_application_action_buttons={
         "approve": "✅ تأیید",
         "deny": "❌ رد",
         "skip": "⏭ بعدی",
     },
-    dm_application_approved_user="🎉 درخواست شما پذیرفته شد! به گیلد خوش آمدید.",
-    dm_application_denied_user="❗️ متأسفیم، درخواست شما در حال حاضر پذیرفته نشد.",
-    dm_application_approved_admin="✅ درخواست کاربر تأیید شد.",
+    dm_application_approved_user="🎉 درخواستت تأیید شد! خوش اومدی به جمعمون.",
+    dm_application_denied_user="❗️ این دفعه نشد، ولی ممنون که تلاش کردی.",
+    dm_application_approved_admin="✅ درخواست کاربر با موفقیت تأیید شد.",
     dm_application_denied_admin="❌ درخواست کاربر رد شد.",
     dm_application_note_prompts={
-        "approve": "✅ شما در حال تأیید {full_name} ({user_id}) هستید. لطفاً دلیل یا پیامی برای او ارسال کنید.",
-        "deny": "❌ شما در حال رد {full_name} ({user_id}) هستید. لطفاً دلیل یا توضیحی برای او ارسال کنید.",
+        "approve": "✅ داری {full_name} ({user_id}) رو تأیید می‌کنی. یه پیام خوشامد یا توضیح کوتاه بنویس.",
+        "deny": "❌ داری درخواست {full_name} ({user_id}) رو رد می‌کنی. لطفاً دلیل یا توضیح دوستانه‌ای بفرست.",
     },
     dm_application_note_confirmations={
-        "approve": "✅ درخواست کاربر تأیید و پیام ارسال شد.",
-        "deny": "❌ درخواست کاربر رد و پیام ارسال شد.",
+        "approve": "✅ تأیید انجام شد و پیامش هم فرستاده شد.",
+        "deny": "❌ رد درخواست انجام شد و پیام اطلاع‌رسانی هم ارسال شد.",
     },
-    dm_application_note_skip_hint="برای ادامه بدون توضیح، عبارت «صرفنظر» را ارسال کنید.",
+    dm_application_note_skip_hint="اگر نمی‌خوای چیزی بنویسی، کلمه «صرفنظر» رو بفرست.",
     dm_application_note_skip_keyword="صرفنظر",
     dm_application_note_label="یادداشت",
-    dm_application_note_no_active="ℹ️ موردی برای ثبت یادداشت وجود ندارد.",
-    dm_status_none="ℹ️ هنوز درخواستی ثبت نکرده‌اید.",
-    dm_status_pending="در حال بررسی",
+    dm_application_note_no_active="ℹ️ الان موردی برای گذاشتن یادداشت نداریم.",
+    dm_status_none="ℹ️ هنوز درخواستی ثبت نکردی.",
+    dm_status_pending="در انتظار بررسی",
     dm_status_approved="تأیید شده",
     dm_status_denied="رد شده",
-    dm_status_withdrawn="لغو شده توسط شما",
+    dm_status_withdrawn="انصراف دادی",
     dm_status_unknown="نامشخص ({status})",
     dm_status_template=(
-        "<b>وضعیت درخواست شما:</b> {status}\n"
+        "<b>وضعیت درخواستت:</b> {status}\n"
         "<i>{last_updated_label}: {updated_at}</i>"
     ),
     dm_status_template_with_note=(
-        "<b>وضعیت درخواست شما:</b> {status}\n"
+        "<b>وضعیت درخواستت:</b> {status}\n"
         "<i>{last_updated_label}: {updated_at}</i>\n"
         "📝 {note}"
     ),
-    dm_status_last_updated_label="آخرین به‌روزرسانی",
-    dm_withdraw_success="♻️ درخواست شما با موفقیت لغو شد.",
-    dm_withdraw_not_found="درخواستی در حال بررسی برای لغو یافت نشد.",
-    dm_admin_added="✅ کاربر {user_id} به عنوان ادمین ثبت شد.",
-    dm_admin_removed="♻️ کاربر {user_id} از لیست ادمین‌ها حذف شد.",
-    dm_not_owner="⛔️ فقط مالک ربات می‌تواند این دستور را اجرا کند.",
-    dm_already_admin="ℹ️ کاربر {user_id} از قبل ادمین است.",
-    dm_not_admin="ℹ️ کاربر {user_id} در میان ادمین‌ها نیست.",
-    dm_no_admins="هیچ ادمینی ثبت نشده است.",
-    dm_cancelled="فرآیند درخواست لغو شد.",
-    dm_admin_enter_user_id="لطفاً شناسه کاربر را وارد کنید.",
-    dm_admin_invalid_user_id="شناسه باید عددی باشد.",
-    group_xp_updated="✨ {full_name} {xp} امتیاز تجربه دارد!",
-    group_xp_leaderboard_title="🏆 جدول تجربه اعضای فعال",
-    group_cup_added="🏆 جام جدید با عنوان «{title}» ثبت شد.",
-    group_cup_leaderboard_title="🥇 جدول جام‌های گیلد",
-    group_no_data="هنوز داده‌ای ثبت نشده است.",
-    group_add_cup_usage="استفاده: /add_cup عنوان | توضیح | قهرمان,نایب‌قهرمان,سوم",
-    group_add_cup_invalid_format="ساختار ورودی صحیح نیست. از جداکننده | استفاده کنید.",
-    group_add_xp_usage="استفاده: /addxp شناسه‌کاربر مقدار (یا در پاسخ به پیام کاربر مقدار را ارسال کنید)",
+    dm_status_last_updated_label="آخرین بروزرسانی",
+    dm_withdraw_success="♻️ درخواستت با موفقیت لغو شد.",
+    dm_withdraw_not_found="درخواستی برای لغو پیدا نکردیم.",
+    dm_admin_added="✅ کاربر {user_id} به جمع ادمین‌ها اضافه شد.",
+    dm_admin_removed="♻️ کاربر {user_id} از فهرست ادمین‌ها خارج شد.",
+    dm_not_owner="⛔️ فقط مالک ربات می‌تونه این دستور رو اجرا کنه.",
+    dm_already_admin="ℹ️ کاربر {user_id} همین الان هم ادمینه.",
+    dm_not_admin="ℹ️ کاربر {user_id} بین ادمین‌ها نیست.",
+    dm_no_admins="فعلاً هیچ ادمینی ثبت نشده.",
+    dm_cancelled="فرآیند درخواست متوقف شد.",
+    dm_admin_enter_user_id="شناسه عددی کاربر رو بفرست.",
+    dm_admin_invalid_user_id="شناسه باید حتماً عدد باشه.",
+    group_xp_updated="✨ {full_name} الان {xp} امتیاز تجربه داره!",
+    group_xp_leaderboard_title="🏆 جدول امتیاز اعضای فعال",
+    group_cup_added="🏆 جام تازه‌ای با عنوان «{title}» ثبت شد.",
+    group_cup_leaderboard_title="🥇 جدول افتخارات گیلد",
+    group_no_data="هنوز چیزی ثبت نشده.",
+    group_add_cup_usage="نحوه استفاده: /add_cup عنوان | توضیح | قهرمان,نایب‌قهرمان,سوم",
+    group_add_cup_invalid_format="ساختار پیام درست نیست؛ با جداکننده | امتحان کن.",
+    group_add_xp_usage="نحوه استفاده: /addxp شناسه‌کاربر مقدار (یا در پاسخ به پیام کاربر مقدار رو بفرست)",
     group_add_xp_success="✨ امتیاز {full_name} به {xp} رسید!",
-    group_promote_usage="برای افزودن ادمین، شناسه او را وارد یا به پیام او پاسخ دهید.",
-    group_demote_usage="برای حذف ادمین، شناسه او را وارد یا به پیام او پاسخ دهید.",
-    group_promote_success="🛡️ {full_name} اکنون دسترسی ادمین دارد.",
-    group_demote_success="♻️ دسترسی ادمین {full_name} حذف شد.",
-    group_promote_already="ℹ️ این کاربر از قبل در فهرست ادمین‌هاست.",
-    group_demote_missing="ℹ️ این کاربر در فهرست ادمین‌ها یافت نشد.",
-    group_panel_intro="<b>🛡️ کنترل‌پنل گیلد</b>\nیکی از دکمه‌های شیشه‌ای را برای مدیریت گروه انتخاب کنید.",
-    group_panel_ban_button="بن کردن",
-    group_panel_mute_button="سکوت",
+    group_promote_usage="برای اضافه کردن ادمین، شناسه رو بفرست یا به پیامش پاسخ بده.",
+    group_demote_usage="برای حذف ادمین، شناسه رو بفرست یا به پیامش پاسخ بده.",
+    group_promote_success="🛡️ {full_name} حالا دسترسی ادمین داره.",
+    group_demote_success="♻️ دسترسی ادمین {full_name} برداشته شد.",
+    group_promote_already="ℹ️ این کاربر قبلاً تو لیست ادمین‌هاست.",
+    group_demote_missing="ℹ️ این کاربر تو لیست ادمین‌ها پیدا نشد.",
+    group_panel_intro="<b>🛡️ کنترل‌پنل گیلد</b>\nیکی از دکمه‌های شیشه‌ای رو انتخاب کن تا کار پیش بره.",
+    group_panel_ban_button="حذف از گروه",
+    group_panel_mute_button="بی‌صدا",
     group_panel_add_xp_button="افزودن XP",
     group_panel_manage_cups_button="مدیریت جام‌ها",
     group_panel_manage_admins_button="ادمین‌ها",
     group_panel_settings_button="تنظیمات",
-    group_panel_close_button="بستن",
-    group_panel_ban_prompt="برای بن کردن، به پیام کاربر پاسخ دهید یا عبارت «cancel» برای لغو ارسال کنید.",
-    group_panel_mute_prompt="برای بی‌صدا کردن، به پیام کاربر پاسخ دهید یا «cancel» را برای لغو بفرستید.",
-    group_panel_add_xp_prompt="به پیام کاربر پاسخ داده و مقدار XP را ارسال کنید. برای لغو «cancel» را بنویسید.",
-    group_panel_cups_hint="برای ثبت جام جدید از دستور /add_cup استفاده کنید.",
-    group_panel_admins_hint="برای مدیریت ادمین‌ها از دستورات /promote و /demote بهره ببرید.",
-    group_panel_settings_hint="برای تنظیمات بیشتر به پنل وب یا پیام‌های خصوصی مراجعه کنید.",
+    group_panel_close_button="بستن پنل",
+    group_panel_ban_prompt="برای حذف عضو، به پیامش پاسخ بده یا برای لغو «cancel» رو بفرست.",
+    group_panel_mute_prompt="برای بی‌صدا کردن، به پیامش پاسخ بده یا «cancel» رو برای لغو بنویس.",
+    group_panel_add_xp_prompt="به پیام عضو جواب بده و مقدار XP رو بفرست. برای لغو «cancel» کافیه.",
+    group_panel_cups_hint="برای ثبت جام جدید از دستور /add_cup کمک بگیر.",
+    group_panel_admins_hint="برای مدیریت ادمین‌ها از /promote و /demote استفاده کن.",
+    group_panel_settings_hint="برای تنظیمات بیشتر می‌تونی سر بزنی به پنل وب یا پیام خصوصی.",
     group_panel_closed="پنل بسته شد.",
     group_panel_cancel_keyword="cancel",
     group_panel_cancelled="✅ عملیات لغو شد.",
-    group_panel_invalid_target="لطفاً به پیام کاربر موردنظر پاسخ دهید.",
-    group_panel_action_error="⚠️ انجام عملیات ممکن نشد. بعداً امتحان کنید.",
-    group_panel_ban_success="🚫 {full_name} از گروه حذف شد.",
+    group_panel_invalid_target="به پیام همون عضوی که مدنظرته جواب بده.",
+    group_panel_action_error="⚠️ الان نشد انجام بدیم؛ کمی بعد دوباره امتحان کن.",
+    group_panel_ban_success="🚫 {full_name} از گروه خارج شد.",
     group_panel_mute_success="🔇 {full_name} بی‌صدا شد.",
-    error_generic="⚠️ خطایی رخ داد. لطفاً مجدداً تلاش کنید.",
+    error_generic="⚠️ اوه! مشکلی پیش اومد، یک بار دیگه تلاش کن.",
     glass_panel_caption=(
-        "<i>طراحی شیشه‌ای با پس‌زمینه‌ی محو و دکمه‌های درخشان برای تجربه‌ای مدرن.</i>"
+        "<i>یک تجربه شیشه‌ای با پس‌زمینه مه‌آلود و دکمه‌های درخشان که حس صمیمیت می‌ده.</i>"
     ),
     admin_list_header="👮‍♂️ ادمین‌های فعال:\n{admins}",
-    dm_rate_limited="⏳ درخواست‌های شما موقتاً محدود شده است. لطفاً چند لحظه بعد دوباره تلاش کنید.",
+    dm_rate_limited="⏳ چند لحظه صبر کن؛ درخواست‌هات پشت سر هم بوده.",
     dm_language_button="تغییر زبان",
-    dm_language_menu_title="یک زبان را انتخاب کنید:",
+    dm_language_menu_title="زبان دلخواهت رو انتخاب کن:",
     dm_language_close_button="بازگشت",
-    dm_language_updated="✅ زبان ربات به‌روزرسانی شد.",
+    dm_language_updated="✅ زبان ربات عوض شد.",
     group_refresh_button="🔄 تازه‌سازی",
     dm_admin_panel_intro=(
-        "<b>🛡️ پنل مدیریت فلایزکس</b>\n"
-        "برای ادامه یکی از گزینه‌های شیشه‌ای زیر را انتخاب کنید."
+        "<b>🛡️ خوش اومدی به پنل مدیریت فلایزکس</b>\n"
+        "هر گزینه‌ای که لازمت هست رو از دکمه‌های زیر انتخاب کن."
     ),
-    dm_admin_panel_view_applications_button="مشاهده درخواست‌ها",
-    dm_admin_panel_view_members_button="اعضای تایید‌شده",
-    dm_admin_panel_manage_admins_button="مدیریت ادمین‌ها",
-    dm_admin_panel_manage_questions_button="مدیریت سوال‌ها",
+    dm_admin_panel_view_applications_button="درخواست‌های در صف",
+    dm_admin_panel_view_members_button="اعضای تاییدشده",
+    dm_admin_panel_manage_admins_button="ادمین‌ها را مدیریت کن",
+    dm_admin_panel_manage_questions_button="ویرایش سوال‌ها",
     dm_admin_panel_more_tools_button="ابزارهای بیشتر",
-    dm_admin_panel_insights_button="گزارش‌ها و تحلیل‌ها",
-    dm_admin_panel_back_button="بازگشت به خانه",
-    dm_admin_panel_members_header="✅ اعضای تایید‌شده ({count} نفر):\n{members}",
-    dm_admin_panel_members_empty="هیچ عضوی تأیید نشده است.",
+    dm_admin_panel_insights_button="گزارش‌ها و آمار",
+    dm_admin_panel_back_button="بازگشت به پیام خوش‌آمد",
+    dm_admin_panel_members_header="✅ اعضای تاییدشده ({count} نفر):\n{members}",
+    dm_admin_panel_members_empty="فعلاً هیچ عضوی تایید نشده.",
     dm_admin_manage_title="<b>🛡️ مدیریت ادمین‌ها</b>",
-    dm_admin_manage_intro="از گزینه‌های زیر برای افزودن، حذف یا مشاهده فهرست ادمین‌ها استفاده کنید.",
-    dm_admin_manage_add_button="افزودن ادمین",
+    dm_admin_manage_intro="برای اضافه، حذف یا دیدن فهرست ادمین‌ها از دکمه‌های پایین کمک بگیر.",
+    dm_admin_manage_add_button="اضافه کردن ادمین",
     dm_admin_manage_remove_button="حذف ادمین",
-    dm_admin_manage_list_button="نمایش فهرست ادمین‌ها",
-    dm_admin_manage_back_button="بازگشت به پنل اصلی",
+    dm_admin_manage_list_button="مشاهده فهرست",
+    dm_admin_manage_back_button="برگشت به پنل اصلی",
     dm_admin_manage_list_header="<b>ادمین‌های فعال:</b>",
-    dm_admin_manage_list_empty="هیچ ادمینی ثبت نشده است.",
+    dm_admin_manage_list_empty="فعلاً ادمینی تعریف نشده.",
     dm_admin_manage_list_entry="• {display} — شناسه: <code>{user_id}</code>",
     dm_admin_manage_list_unknown="بدون نام",
-    dm_admin_panel_add_admin_prompt="شناسه عددی کاربر موردنظر را ارسال کنید.",
+    dm_admin_panel_add_admin_prompt="شناسه عددی کاربر مدنظر رو بفرست.",
     dm_admin_panel_more_tools_text=(
-        "✨ می‌توانید از نسخه وب برای مدیریت کامل‌تر استفاده کنید:\n"
-        "<a href=\"{webapp_url}\">ورود به داشبورد</a>"
+        "✨ برای مدیریت کامل‌تر می‌تونی از نسخه وب استفاده کنی:\n"
+        "<a href=\"{webapp_url}\">رفتن به داشبورد</a>"
     ),
     dm_admin_panel_more_tools_no_webapp=(
-        "ℹ️ هنوز وب‌اپ معرفی نشده است. در فایل پیکربندی مقدار webapp_url را تنظیم کنید."
+        "ℹ️ هنوز آدرس وب‌اپ مشخص نشده. لطفاً مقدار webapp_url رو در پیکربندی تنظیم کن."
     ),
     dm_admin_questions_menu_title="<b>مدیریت سوال‌های فرم ({language})</b>",
     dm_admin_questions_menu_intro=(
-        "یکی از سوال‌ها را برای ویرایش انتخاب کنید.\n"
-        "برای بازگرداندن مقدار پیش‌فرض، هنگام ویرایش کلمه «{reset_keyword}» را ارسال کنید."
+        "سوالی که می‌خوای ویرایش کنی رو انتخاب کن.\n"
+        "اگه نظرت عوض شد، حین ویرایش کلمه «{reset_keyword}» رو بفرست تا متن اولیه برگرده."
     ),
     dm_admin_questions_role_label="سوال نقش (مرحله ۱)",
-    dm_admin_questions_goals_label="سوال اهداف (مرحله ۳)",
-    dm_admin_questions_availability_label="سوال زمان‌بندی (مرحله ۴)",
-    dm_admin_questions_followup_label_template="سوال پیگیری ({role})",
+    dm_admin_questions_goals_label="سوال هدف‌ها (مرحله ۳)",
+    dm_admin_questions_availability_label="سوال زمان حضور (مرحله ۴)",
+    dm_admin_questions_followup_label_template="سوال تکمیلی ({role})",
     dm_admin_questions_prompt=(
-        "متن جدید برای «{label}» را بفرستید.\n"
-        "برای بازنشانی به متن پیش‌فرض، عبارت «{reset_keyword}» را ارسال کنید.\n\n"
+        "متن تازه برای «{label}» رو بفرست.\n"
+        "برای برگشت به حالت اولیه، فقط «{reset_keyword}» رو بفرست.\n\n"
         "متن فعلی:\n{current}"
     ),
     dm_admin_questions_reset_keyword="پیشفرض",
-    dm_admin_questions_reset_hint="ارسال کلمه «{reset_keyword}» سوال را به حالت اولیه بازمی‌گرداند.",
+    dm_admin_questions_reset_hint="ارسال «{reset_keyword}» سوال رو به متن اصلی برمی‌گردونه.",
     dm_admin_questions_success="سوال «{label}» به‌روزرسانی شد.",
-    dm_admin_questions_reset_success="سوال «{label}» به مقدار پیش‌فرض بازنشانی شد.",
+    dm_admin_questions_reset_success="سوال «{label}» به متن اولیه برگشت.",
     dm_admin_questions_cancelled="ویرایش سوال لغو شد.",
     dm_admin_questions_back_button="بازگشت",
     dm_admin_panel_insights_title="<b>📊 داشبورد مدیریتی</b>",
@@ -352,13 +352,13 @@ PERSIAN_TEXTS = TextPack(
         "• تأیید شده: {approved}\n"
         "• رد شده: {denied}\n"
         "• لغو شده: {withdrawn}\n"
-        "• مجموع ثبت‌شده: {total}\n"
+        "• مجموع درخواست‌ها: {total}\n"
         "• میانگین طول پاسخ‌های در انتظار: {average_length:.0f} کاراکتر"
     ),
-    dm_admin_panel_insights_languages="<b>🌐 زبان‌های پرکاربرد:</b>\n{languages}",
-    dm_admin_panel_insights_languages_empty="هیچ زبان ترجیحی ثبت نشده است.",
-    dm_admin_panel_insights_recent="<b>🕒 آخرین فعالیت‌ها:</b>\n{items}",
-    dm_admin_panel_insights_recent_empty="سابقه‌ای برای نمایش وجود ندارد.",
+    dm_admin_panel_insights_languages="<b>🌐 زبان‌های محبوب:</b>\n{languages}",
+    dm_admin_panel_insights_languages_empty="فعلاً کسی زبان دلخواهش رو ثبت نکرده.",
+    dm_admin_panel_insights_recent="<b>🕒 آخرین رویدادها:</b>\n{items}",
+    dm_admin_panel_insights_recent_empty="چیزی برای نمایش وجود نداره.",
     language_names={
         "fa": "فارسی",
         "en": "انگلیسی",
@@ -368,30 +368,30 @@ PERSIAN_TEXTS = TextPack(
 
 ENGLISH_TEXTS = TextPack(
     dm_welcome=(
-        "<b>🪟 Welcome to the Flyzex Glass Panel!</b>\n\n"
-        "Tap the button below to begin your application to the guild."
+        "<b>🪟 Hey there! Thanks for dropping by the Flyzex glass panel.</b>\n\n"
+        "Tap the button below and we'll walk through your guild application together."
     ),
-    dm_apply_button="Apply to join the guild",
-    dm_open_webapp_button="Open web panel",
-    dm_admin_panel_button="Open admin panel",
-    dm_status_button="Check status",
-    dm_withdraw_button="Withdraw application",
+    dm_apply_button="Start guild application",
+    dm_open_webapp_button="Open web dashboard",
+    dm_admin_panel_button="Go to admin panel",
+    dm_status_button="Check my status",
+    dm_withdraw_button="Cancel my application",
     dm_application_started=(
-        "📝 Ready to apply? Let's go through a few quick questions together!\n"
-        "Send /cancel anytime to stop."
+        "📝 Let's do this! A few quick questions will help us get to know you.\n"
+        "Need to stop? Send /cancel anytime."
     ),
-    dm_application_question="1️⃣ Which role fits you best in the guild?",
+    dm_application_question="1️⃣ What role feels most like you in the guild?",
     dm_application_received=(
-        "✅ Your application has been submitted! We will notify you after review.\n"
-        "Use the ‘Check status’ button anytime for updates."
+        "✅ Got it! Your application is in and we'll let you know once it's reviewed.\n"
+        "Use “Check my status” whenever you need an update."
     ),
     dm_application_duplicate=(
-        "ℹ️ Your application is already on file and is being reviewed."
+        "ℹ️ We already have an application from you and it's in the review queue."
     ),
     dm_application_already_member=(
-        "ℹ️ You're already a guild member—no need to submit another application."
+        "ℹ️ You're already part of the guild—no need to apply again."
     ),
-    dm_application_role_prompt="1️⃣ Which role fits you best in the guild? (Trader, Fighter, Explorer, Support)",
+    dm_application_role_prompt="1️⃣ What role feels most like you in the guild? (Trader, Fighter, Explorer, Support)",
     dm_application_role_options={
         "trader": ["trader", "merchant"],
         "fighter": ["fighter", "warrior"],
@@ -399,18 +399,18 @@ ENGLISH_TEXTS = TextPack(
         "support": ["support", "healer"],
     },
     dm_application_followup_prompts={
-        "trader": "2️⃣ What kind of trading or resource management experience do you have?",
-        "fighter": "2️⃣ What combat style or strategy do you excel at?",
-        "explorer": "2️⃣ Tell us about an adventure or discovery you're proud of.",
-        "support": "2️⃣ How do you usually empower or assist your teammates?",
+        "trader": "2️⃣ Tell us about your experience trading or managing resources.",
+        "fighter": "2️⃣ What kind of combat style or strategy energizes you?",
+        "explorer": "2️⃣ Share an adventure or discovery that stuck with you.",
+        "support": "2️⃣ How do you usually lift up or support your squad?",
     },
-    dm_application_goals_prompt="3️⃣ What do you hope to achieve by joining the guild?",
-    dm_application_availability_prompt="4️⃣ When are you usually available to participate?",
-    dm_application_summary_title="<b>📋 Summary of your answers</b>",
+    dm_application_goals_prompt="3️⃣ What are you hoping to get out of joining the guild?",
+    dm_application_availability_prompt="4️⃣ When are you usually around to jump in?",
+    dm_application_summary_title="<b>📋 Quick recap of your answers</b>",
     dm_application_summary_item="• <b>{question}</b>\n  {answer}",
-    dm_application_invalid_choice="Please choose one of the available options: {options}",
-    dm_admin_only="⛔️ This section is for admins only.",
-    dm_no_pending="There are no applications to review.",
+    dm_application_invalid_choice="Pick one of the suggested options: {options}",
+    dm_admin_only="⛔️ This area is just for admins.",
+    dm_no_pending="No applications are waiting right now.",
     dm_application_item=(
         "<b>Applicant:</b> {full_name} ({user_id})\n"
         "<b>Username:</b> {username}\n"
@@ -419,30 +419,30 @@ ENGLISH_TEXTS = TextPack(
     ),
     dm_application_action_buttons={
         "approve": "✅ Approve",
-        "deny": "❌ Deny",
-        "skip": "⏭ Skip",
+        "deny": "❌ Decline",
+        "skip": "⏭ Next",
     },
-    dm_application_approved_user="🎉 Your application has been approved! Welcome aboard.",
-    dm_application_denied_user="❗️ Unfortunately your application was not approved.",
-    dm_application_approved_admin="✅ The application was approved.",
-    dm_application_denied_admin="❌ The application was rejected.",
+    dm_application_approved_user="🎉 You're in! Welcome to the guild.",
+    dm_application_denied_user="❗️ Not this time, but thanks for giving it a shot.",
+    dm_application_approved_admin="✅ The application has been approved.",
+    dm_application_denied_admin="❌ The application has been declined.",
     dm_application_note_prompts={
-        "approve": "✅ You are approving {full_name} ({user_id}). Please send a welcome note or reason.",
-        "deny": "❌ You are denying {full_name} ({user_id}). Please send a brief reason.",
+        "approve": "✅ You're welcoming {full_name} ({user_id}). Send a warm note or a quick reason.",
+        "deny": "❌ You're declining {full_name} ({user_id}). Please share a short, helpful reason.",
     },
     dm_application_note_confirmations={
-        "approve": "✅ The application was approved and the applicant has been notified.",
-        "deny": "❌ The application was rejected and the applicant has been notified.",
+        "approve": "✅ Approval sent and the applicant has been notified.",
+        "deny": "❌ Decline recorded and the applicant has been informed.",
     },
-    dm_application_note_skip_hint="Type SKIP to continue without adding a note.",
+    dm_application_note_skip_hint="Type SKIP if you'd rather continue without a note.",
     dm_application_note_skip_keyword="skip",
     dm_application_note_label="Note",
-    dm_application_note_no_active="ℹ️ There is no application awaiting a note.",
-    dm_status_none="ℹ️ You have not submitted an application yet.",
-    dm_status_pending="Pending review",
+    dm_application_note_no_active="ℹ️ There's no application waiting for a note right now.",
+    dm_status_none="ℹ️ You haven't submitted an application yet.",
+    dm_status_pending="In review",
     dm_status_approved="Approved",
-    dm_status_denied="Denied",
-    dm_status_withdrawn="Withdrawn by you",
+    dm_status_denied="Declined",
+    dm_status_withdrawn="Withdrawn",
     dm_status_unknown="Unknown ({status})",
     dm_status_template=(
         "<b>Your application status:</b> {status}\n"
@@ -453,124 +453,124 @@ ENGLISH_TEXTS = TextPack(
         "<i>{last_updated_label}: {updated_at}</i>\n"
         "📝 {note}"
     ),
-    dm_status_last_updated_label="Last updated",
-    dm_withdraw_success="♻️ Your application has been withdrawn.",
-    dm_withdraw_not_found="No pending application was found to withdraw.",
-    dm_admin_added="✅ User {user_id} is now an admin.",
-    dm_admin_removed="♻️ User {user_id} was removed from admins.",
+    dm_status_last_updated_label="Last update",
+    dm_withdraw_success="♻️ Your application has been cancelled.",
+    dm_withdraw_not_found="We couldn't find an application to cancel.",
+    dm_admin_added="✅ User {user_id} is now part of the admin team.",
+    dm_admin_removed="♻️ User {user_id} has been removed from the admin team.",
     dm_not_owner="⛔️ Only the bot owner can run this command.",
-    dm_already_admin="ℹ️ User {user_id} is already an admin.",
-    dm_not_admin="ℹ️ User {user_id} is not listed as an admin.",
+    dm_already_admin="ℹ️ User {user_id} is already on the admin list.",
+    dm_not_admin="ℹ️ User {user_id} isn't on the admin list.",
     dm_no_admins="No admins have been added yet.",
-    dm_cancelled="The application process was cancelled.",
-    dm_admin_enter_user_id="Please provide the user ID.",
-    dm_admin_invalid_user_id="The user ID must be numeric.",
+    dm_cancelled="The application flow has been stopped.",
+    dm_admin_enter_user_id="Send the member's numeric ID.",
+    dm_admin_invalid_user_id="The ID needs to be a number.",
     group_xp_updated="✨ {full_name} now has {xp} XP!",
-    group_xp_leaderboard_title="🏆 Experience leaderboard",
-    group_cup_added="🏆 A new cup named '{title}' has been recorded.",
-    group_cup_leaderboard_title="🥇 Guild cups leaderboard",
-    group_no_data="No records yet.",
-    group_add_cup_usage="Usage: /add_cup title | description | gold,silver,bronze",
-    group_add_cup_invalid_format="Invalid format. Separate items with |",
-    group_add_xp_usage="Usage: /addxp user_id amount (or reply to a user with the amount)",
-    group_add_xp_success="✨ {full_name} now has {xp} XP!",
-    group_promote_usage="Reply to the user or provide their numeric ID to promote them.",
-    group_demote_usage="Reply to the user or provide their numeric ID to demote them.",
-    group_promote_success="🛡️ {full_name} is now an admin.",
+    group_xp_leaderboard_title="🏆 XP board for active members",
+    group_cup_added="🏆 Logged a new cup named “{title}”.",
+    group_cup_leaderboard_title="🥇 Guild trophy board",
+    group_no_data="Nothing has been recorded yet.",
+    group_add_cup_usage="How to use: /add_cup Title | Description | Champion,Runner-up,Third",
+    group_add_cup_invalid_format="That format doesn't look right—use the | separator.",
+    group_add_xp_usage="How to use: /addxp user_id amount (or reply to their message with the amount)",
+    group_add_xp_success="✨ {full_name}'s XP now sits at {xp}!",
+    group_promote_usage="To add an admin, send their ID or reply to one of their messages.",
+    group_demote_usage="To remove an admin, send their ID or reply to one of their messages.",
+    group_promote_success="🛡️ {full_name} now has admin access.",
     group_demote_success="♻️ {full_name} is no longer an admin.",
-    group_promote_already="ℹ️ That user is already listed as an admin.",
-    group_demote_missing="ℹ️ That user was not found among the admins.",
-    group_panel_intro="<b>🛡️ Guild control panel</b>\nChoose a glass button to manage the group.",
-    group_panel_ban_button="Ban",
+    group_promote_already="ℹ️ That member is already on the admin team.",
+    group_demote_missing="ℹ️ That member isn't listed as an admin.",
+    group_panel_intro="<b>🛡️ Guild control panel</b>\nPick a glass button and let's take care of it.",
+    group_panel_ban_button="Remove member",
     group_panel_mute_button="Mute",
     group_panel_add_xp_button="Add XP",
-    group_panel_manage_cups_button="Cups",
+    group_panel_manage_cups_button="Manage cups",
     group_panel_manage_admins_button="Admins",
     group_panel_settings_button="Settings",
-    group_panel_close_button="Close",
-    group_panel_ban_prompt="Reply to the member you want to ban, or type 'cancel' to abort.",
-    group_panel_mute_prompt="Reply to the member you want to mute, or type 'cancel' to abort.",
-    group_panel_add_xp_prompt="Reply to the member and send the XP amount. Type 'cancel' to abort.",
-    group_panel_cups_hint="Use /add_cup to register a new trophy run.",
-    group_panel_admins_hint="Use /promote and /demote to adjust admin privileges.",
-    group_panel_settings_hint="For advanced settings open the web dashboard or DM panel.",
+    group_panel_close_button="Close panel",
+    group_panel_ban_prompt="Reply to the member you want to remove, or type 'cancel' to back out.",
+    group_panel_mute_prompt="Reply to the member you want to mute, or type 'cancel' to back out.",
+    group_panel_add_xp_prompt="Reply to the member and send the XP amount. Type 'cancel' to back out.",
+    group_panel_cups_hint="Use /add_cup to log a new trophy run.",
+    group_panel_admins_hint="Use /promote and /demote to adjust admin roles.",
+    group_panel_settings_hint="For deeper settings, open the web dashboard or DM panel.",
     group_panel_closed="Panel closed.",
     group_panel_cancel_keyword="cancel",
     group_panel_cancelled="✅ Action cancelled.",
-    group_panel_invalid_target="Please reply to the target member's message.",
-    group_panel_action_error="⚠️ The action could not be completed. Try again later.",
-    group_panel_ban_success="🚫 {full_name} has been banned from the group.",
+    group_panel_invalid_target="Reply directly to the member you're targeting.",
+    group_panel_action_error="⚠️ Couldn't finish that right now—please try again shortly.",
+    group_panel_ban_success="🚫 {full_name} has been removed from the group.",
     group_panel_mute_success="🔇 {full_name} has been muted.",
-    error_generic="⚠️ Something went wrong. Please try again.",
+    error_generic="⚠️ Oops, something went wrong. Please try again.",
     glass_panel_caption=(
-        "<i>A modern glassmorphism-inspired interface with frosted cards and vibrant buttons.</i>"
+        "<i>A cozy glassmorphism experience with soft blur and vibrant buttons to keep things welcoming.</i>"
     ),
     admin_list_header="👮‍♂️ Current admins:\n{admins}",
-    dm_rate_limited="⏳ You're sending messages too quickly. Please wait a moment and try again.",
+    dm_rate_limited="⏳ Easy there! Give it a moment before sending more requests.",
     dm_language_button="Change language",
-    dm_language_menu_title="Choose a language:",
+    dm_language_menu_title="Pick the language you prefer:",
     dm_language_close_button="Back",
-    dm_language_updated="✅ Language updated successfully.",
+    dm_language_updated="✅ Language updated.",
     group_refresh_button="🔄 Refresh",
     dm_admin_panel_intro=(
-        "<b>🛡️ Flyzex Admin Panel</b>\n"
-        "Select one of the glass buttons below to continue."
+        "<b>🛡️ Welcome to the Flyzex admin panel</b>\n"
+        "Grab whatever you need from the buttons below."
     ),
-    dm_admin_panel_view_applications_button="View applications",
+    dm_admin_panel_view_applications_button="Pending applications",
     dm_admin_panel_view_members_button="Approved members",
     dm_admin_panel_manage_admins_button="Manage admins",
-    dm_admin_panel_manage_questions_button="Manage questions",
+    dm_admin_panel_manage_questions_button="Edit questions",
     dm_admin_panel_more_tools_button="More tools",
-    dm_admin_panel_insights_button="Analytics & reports",
+    dm_admin_panel_insights_button="Reports & insights",
     dm_admin_panel_back_button="Back to welcome",
     dm_admin_panel_members_header="✅ Approved members ({count}):\n{members}",
     dm_admin_panel_members_empty="No members have been approved yet.",
     dm_admin_manage_title="<b>🛡️ Admin management</b>",
-    dm_admin_manage_intro="Use the buttons below to add, remove, or review the current admins.",
-    dm_admin_manage_add_button="Add admin",
-    dm_admin_manage_remove_button="Remove admin",
-    dm_admin_manage_list_button="Show admin list",
+    dm_admin_manage_intro="Use the buttons below to add, remove, or review the admin list.",
+    dm_admin_manage_add_button="Add an admin",
+    dm_admin_manage_remove_button="Remove an admin",
+    dm_admin_manage_list_button="View admin list",
     dm_admin_manage_back_button="Back to main panel",
     dm_admin_manage_list_header="<b>Current admins:</b>",
     dm_admin_manage_list_empty="No admins have been registered yet.",
     dm_admin_manage_list_entry="• {display} — ID: <code>{user_id}</code>",
     dm_admin_manage_list_unknown="No name",
     dm_admin_panel_add_admin_prompt=(
-        "Send the numeric user ID of the member you want to promote."
-        "\nSend /cancel to abort."
+        "Send the numeric ID of the member you'd like to promote."
+        "\nSend /cancel if you change your mind."
     ),
     dm_admin_panel_more_tools_text=(
-        "✨ Access the full dashboard through the web app:\n"
+        "✨ Want the full toolkit? Hop into the web dashboard:\n"
         "<a href=\"{webapp_url}\">Open dashboard</a>"
     ),
     dm_admin_panel_more_tools_no_webapp=(
-        "ℹ️ Configure webapp_url in settings.yaml to enable the web dashboard."
+        "ℹ️ Add a webapp_url in settings.yaml to enable the web dashboard."
     ),
     dm_admin_questions_menu_title="<b>Manage application questions ({language})</b>",
     dm_admin_questions_menu_intro=(
-        "Choose a question to update.\n"
-        "Send “{reset_keyword}” while editing to restore the default text."
+        "Pick the question you want to update.\n"
+        "While editing, type “{reset_keyword}” to bring back the default text."
     ),
     dm_admin_questions_role_label="Role question (step 1)",
     dm_admin_questions_goals_label="Goals question (step 3)",
     dm_admin_questions_availability_label="Availability question (step 4)",
     dm_admin_questions_followup_label_template="Follow-up question ({role})",
     dm_admin_questions_prompt=(
-        "Send the new text for “{label}”.\n"
-        "Send “{reset_keyword}” to restore the default text.\n\n"
+        "Send the new wording for “{label}”.\n"
+        "If you change your mind, send “{reset_keyword}” to restore the default.\n\n"
         "Current text:\n{current}"
     ),
     dm_admin_questions_reset_keyword="reset",
-    dm_admin_questions_reset_hint="Sending “{reset_keyword}” will restore this question to its default text.",
+    dm_admin_questions_reset_hint="Sending “{reset_keyword}” restores this question to its original wording.",
     dm_admin_questions_success="“{label}” has been updated.",
-    dm_admin_questions_reset_success="“{label}” has been restored to the default text.",
+    dm_admin_questions_reset_success="“{label}” is back to the default text.",
     dm_admin_questions_cancelled="Question editing cancelled.",
     dm_admin_questions_back_button="Back",
     dm_admin_panel_insights_title="<b>📊 Admin dashboard</b>",
     dm_admin_panel_insights_counts=(
-        "• Pending review: {pending}\n"
+        "• In review: {pending}\n"
         "• Approved: {approved}\n"
-        "• Denied: {denied}\n"
+        "• Declined: {denied}\n"
         "• Withdrawn: {withdrawn}\n"
         "• Total submissions: {total}\n"
         "• Avg. pending answer length: {average_length:.0f} characters"
@@ -578,7 +578,7 @@ ENGLISH_TEXTS = TextPack(
     dm_admin_panel_insights_languages="<b>🌐 Preferred languages:</b>\n{languages}",
     dm_admin_panel_insights_languages_empty="No language preferences have been recorded yet.",
     dm_admin_panel_insights_recent="<b>🕒 Recent activity:</b>\n{items}",
-    dm_admin_panel_insights_recent_empty="No recent activity to display.",
+    dm_admin_panel_insights_recent_empty="Nothing to show just yet.",
     language_names={
         "fa": "Persian",
         "en": "English",
