@@ -182,3 +182,21 @@ def test_pending_applications_filters_and_dashboard(monkeypatch: pytest.MonkeyPa
         # Requesting unknown application should yield 404
         r = client.get("/api/applications/9999", headers=headers)
         assert r.status_code == 404
+
+
+def test_prefixed_paths_are_served(monkeypatch: pytest.MonkeyPatch) -> None:
+    from cryptography.fernet import Fernet
+
+    key = Fernet.generate_key().decode("utf-8")
+    monkeypatch.setenv("BOT_SECRET_KEY", key)
+
+    with TestClient(webapp) as client:
+        client.app.state.base_path = "/demo"
+        client.app.root_path = "/demo"
+
+        prefixed_response = client.get("/demo/api/leaderboard/xp/top?limit=3")
+        assert prefixed_response.status_code == 200
+        assert prefixed_response.json()["leaderboard"] == []
+
+        plain_response = client.get("/api/leaderboard/xp/top?limit=3")
+        assert plain_response.status_code == 200
