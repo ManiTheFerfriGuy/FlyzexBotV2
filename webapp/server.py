@@ -6,14 +6,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 
-from cryptography.fernet import Fernet
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from flyzexbot.config import Settings
-from flyzexbot.services.security import EncryptionManager
 from flyzexbot.services.storage import Storage, configure_timezone
 
 from .api import router as api_router
@@ -149,32 +147,20 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    storage_read_only = False
-    try:
-        secret_key = settings.get_webapp_secret_key()
-    except RuntimeError:
-        secret_key = Fernet.generate_key()
-        storage_read_only = True
-
-    encryption = EncryptionManager(secret_key)
-
     storage = Storage(
         settings.storage.path,
-        encryption,
+        None,
         backup_path=settings.storage.backup_path,
     )
-    if storage_read_only:
-        storage.disable_persistence()
     try:
         await storage.load()
     except RuntimeError:
-        if not storage_read_only:
-            raise
+        pass
 
     bot_token = os.getenv(settings.telegram.bot_token_env)
     avatar_service = AvatarService(bot_token)
 
-    app.state.storage_read_only = storage_read_only
+    app.state.storage_read_only = False
     app.state.settings = settings
     app.state.storage = storage
     app.state.avatar_service = avatar_service
@@ -183,8 +169,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await avatar_service.close()
-        if not storage_read_only:
-            await storage.save()
+        await storage.save()
 
 
 app = FastAPI(title="FlyzexBot WebApp", lifespan=lifespan)

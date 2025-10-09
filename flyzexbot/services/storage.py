@@ -248,7 +248,7 @@ class Storage:
     def __init__(
         self,
         path: Path,
-        encryption: EncryptionManager,
+        encryption: Optional[EncryptionManager] = None,
         *,
         backup_path: Optional[Path] = None,
     ) -> None:
@@ -279,11 +279,17 @@ class Storage:
         if not encrypted:
             return
 
-        decrypted = await self._encryption.decrypt(encrypted)
-        if decrypted is None:
-            raise RuntimeError("Failed to decrypt storage file. Check the secret key.")
+        if self._encryption is not None:
+            decrypted = await self._encryption.decrypt(encrypted)
+            if decrypted is None:
+                raise RuntimeError(
+                    "Failed to decrypt storage file. Check the secret key."
+                )
+            payload_bytes = decrypted
+        else:
+            payload_bytes = encrypted
 
-        payload = json.loads(decrypted.decode("utf-8"))
+        payload = json.loads(payload_bytes.decode("utf-8"))
         self._state = StorageState.from_dict(payload)
         LOGGER.info("storage_loaded", extra={"path": str(self._path)})
 
@@ -714,7 +720,10 @@ class Storage:
         return payload
 
     async def _write_snapshot(self, payload: bytes) -> None:
-        encrypted = await self._encryption.encrypt(payload)
+        if self._encryption is not None:
+            to_write = await self._encryption.encrypt(payload)
+        else:
+            to_write = payload
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
         if self._path.suffix:
@@ -724,7 +733,7 @@ class Storage:
 
         try:
             async with aioopen(tmp_path, "wb") as file:
-                await file.write(encrypted)
+                await file.write(to_write)
                 await file.flush()
             await asyncio.to_thread(os.replace, tmp_path, self._path)
         except Exception:
