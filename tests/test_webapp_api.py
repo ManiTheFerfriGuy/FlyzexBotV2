@@ -52,7 +52,6 @@ def test_admin_crud_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     key = Fernet.generate_key().decode("utf-8")
     monkeypatch.setenv("BOT_SECRET_KEY", key)
-    monkeypatch.setenv("WEBAPP_SECRET_KEY", key)
     monkeypatch.setenv("ADMIN_API_KEY", "test_admin_key")
 
     headers = {"X-Admin-Api-Key": "test_admin_key"}
@@ -96,7 +95,6 @@ def test_pending_applications_filters_and_dashboard(monkeypatch: pytest.MonkeyPa
 
     key = Fernet.generate_key().decode("utf-8")
     monkeypatch.setenv("BOT_SECRET_KEY", key)
-    monkeypatch.setenv("WEBAPP_SECRET_KEY", key)
     monkeypatch.setenv("ADMIN_API_KEY", "test_admin_key")
 
     headers = {"X-Admin-Api-Key": "test_admin_key"}
@@ -191,7 +189,6 @@ def test_prefixed_paths_are_served(monkeypatch: pytest.MonkeyPatch) -> None:
 
     key = Fernet.generate_key().decode("utf-8")
     monkeypatch.setenv("BOT_SECRET_KEY", key)
-    monkeypatch.setenv("WEBAPP_SECRET_KEY", key)
 
     with TestClient(webapp) as client:
         client.app.state.base_path = "/demo"

@@ -46,7 +46,6 @@ class WebAppConfig:
     host: str
     port: int
     url: Optional[str] = None
-    secret_key_env: str = "WEBAPP_SECRET_KEY"
 
     def get_url(self) -> Optional[str]:
         """Return a fully-qualified URL for the configured WebApp."""
@@ -130,7 +129,6 @@ class Settings:
             host=webapp_cfg.get("host", "0.0.0.0"),
             port=int(webapp_cfg.get("port", 8080)),
             url=webapp_cfg.get("url"),
-            secret_key_env=webapp_cfg.get("secret_key_env", "WEBAPP_SECRET_KEY"),
         )
 
         security_cfg = data.get("security", {})
@@ -181,17 +179,7 @@ class Settings:
         return self._get_secret(self.telegram.secret_key_env)
 
     def get_webapp_secret_key(self) -> bytes:
-        env_name = self.webapp.secret_key_env or self.telegram.secret_key_env
-        key = os.getenv(env_name)
-        if not key and env_name != self.telegram.secret_key_env:
-            key = os.getenv(self.telegram.secret_key_env)
-            if key:
-                return key.encode("utf-8")
-        if not key:
-            raise RuntimeError(
-                f"Secret key not found in environment variable '{env_name}'."
-            )
-        return key.encode("utf-8")
+        return self.get_bot_secret_key()
 
     def get_secret_key(self) -> bytes:
         """Backward compatible alias for bot storage secret accessor."""
