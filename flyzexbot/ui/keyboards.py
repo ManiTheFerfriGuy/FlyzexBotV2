@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
-from ..localization import PERSIAN_TEXTS, TextPack
+from ..localization import TextPack, get_default_text_pack
 
 
 LANGUAGE_CODES: tuple[str, ...] = ("fa", "en")
@@ -10,7 +10,7 @@ DEFAULT_LANGUAGE_LABELS: dict[str, str] = {"fa": "فارسی", "en": "English"}
 
 
 def group_admin_panel_keyboard(texts: TextPack | None = None) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     return InlineKeyboardMarkup(
         [
             [
@@ -59,7 +59,7 @@ def glass_dm_welcome_keyboard(
     *,
     is_admin: bool = False,
 ) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     rows = [
         [
             InlineKeyboardButton(
@@ -111,7 +111,7 @@ def admin_panel_keyboard(
     texts: TextPack | None = None,
     webapp_url: str | None = None,
 ) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     rows: list[list[InlineKeyboardButton]] = [
         [
             InlineKeyboardButton(
@@ -178,7 +178,7 @@ def admin_questions_keyboard(
     *,
     role_keys: tuple[str, ...] | None = None,
 ) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     buttons: list[list[InlineKeyboardButton]] = [
         [
             InlineKeyboardButton(
@@ -234,7 +234,7 @@ def admin_questions_keyboard(
 
 
 def admin_management_keyboard(texts: TextPack | None = None) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     return InlineKeyboardMarkup(
         [
             [
@@ -266,7 +266,7 @@ def admin_management_keyboard(texts: TextPack | None = None) -> InlineKeyboardMa
 
 
 def application_review_keyboard(user_id: int, texts: TextPack | None = None) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     return InlineKeyboardMarkup(
         [
             [
@@ -290,7 +290,7 @@ def application_review_keyboard(user_id: int, texts: TextPack | None = None) -> 
 
 
 def language_options_keyboard(active: str | None, texts: TextPack | None = None) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     rows: list[list[InlineKeyboardButton]] = []
     for code in LANGUAGE_CODES:
         language_names = getattr(text_pack, "language_names", {})
@@ -316,7 +316,7 @@ def language_options_keyboard(active: str | None, texts: TextPack | None = None)
 
 
 def leaderboard_refresh_keyboard(board_type: str, chat_id: int, texts: TextPack | None = None) -> InlineKeyboardMarkup:
-    text_pack = texts or PERSIAN_TEXTS
+    text_pack = texts or get_default_text_pack()
     return InlineKeyboardMarkup(
         [
             [

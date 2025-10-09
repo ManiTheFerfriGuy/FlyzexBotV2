@@ -8,8 +8,9 @@ from telegram.constants import ParseMode
 from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
                           MessageHandler, filters)
 
-from ..localization import (AVAILABLE_LANGUAGE_CODES, PERSIAN_TEXTS, TextPack,
-                            get_text_pack, normalize_language_code)
+from ..localization import (AVAILABLE_LANGUAGE_CODES, TextPack,
+                            get_default_text_pack, get_text_pack,
+                            normalize_language_code)
 from ..services.analytics import AnalyticsTracker, NullAnalytics
 from ..services.security import RateLimitGuard
 from ..services.storage import (
@@ -465,7 +466,9 @@ class DMHandlers:
                     chat_id=review_chat_id,
                     text=self._render_application_text(user.id),
                     parse_mode=ParseMode.HTML,
-                    reply_markup=application_review_keyboard(user.id, PERSIAN_TEXTS),
+                    reply_markup=application_review_keyboard(
+                        user.id, get_default_text_pack()
+                    ),
                 )
             )
         context.user_data.pop("is_filling_application", None)
@@ -1064,7 +1067,7 @@ class DMHandlers:
 
     def _render_application_text(self, user_id: int, texts: TextPack | None = None) -> str:
         application = self.storage.get_application(user_id)
-        text_pack = texts or PERSIAN_TEXTS
+        text_pack = texts or get_default_text_pack()
         if not application:
             return text_pack.dm_no_pending
         return self._format_application_entry(application, text_pack)
@@ -1089,7 +1092,7 @@ class DMHandlers:
         )
 
     def _render_status_text(self, status: ApplicationHistoryEntry | None, texts: TextPack | None = None) -> str:
-        text_pack = texts or PERSIAN_TEXTS
+        text_pack = texts or get_default_text_pack()
         if not status:
             return text_pack.dm_status_none
 
@@ -1403,7 +1406,9 @@ class DMHandlers:
                         chat_id=review_chat_id,
                         text=self._render_application_text(user.id),
                         parse_mode=ParseMode.HTML,
-                        reply_markup=application_review_keyboard(user.id, PERSIAN_TEXTS),
+                        reply_markup=application_review_keyboard(
+                            user.id, get_default_text_pack()
+                        ),
                     )
                 )
             return True
