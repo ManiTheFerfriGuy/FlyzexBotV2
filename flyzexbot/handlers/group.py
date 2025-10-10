@@ -52,8 +52,6 @@ class GroupHandlers:
             CommandHandler("cups", self.show_cup_leaderboard, filters=filters.ChatType.GROUPS),
             CommandHandler("add_cup", self.add_cup, filters=filters.ChatType.GROUPS),
             CommandHandler("addxp", self.command_add_xp, filters=filters.ChatType.GROUPS),
-            CommandHandler("promote", self.command_promote_admin, filters=filters.ChatType.GROUPS),
-            CommandHandler("demote", self.command_demote_admin, filters=filters.ChatType.GROUPS),
             CommandHandler("panel", self.show_panel, filters=filters.ChatType.GROUPS),
             CallbackQueryHandler(self.handle_leaderboard_refresh, pattern=r"^leaderboard:"),
             CallbackQueryHandler(self.handle_panel_action, pattern=r"^group_panel:"),
@@ -156,12 +154,6 @@ class GroupHandlers:
                 xp=total,
             )
         )
-
-    async def command_promote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self._handle_admin_toggle(update, context, promote=True)
-
-    async def command_demote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self._handle_admin_toggle(update, context, promote=False)
 
     async def command_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat = update.effective_chat
@@ -467,8 +459,6 @@ class GroupHandlers:
                 ("/panel", texts.group_help_cmd_panel),
                 ("/add_cup", texts.group_help_cmd_add_cup),
                 ("/addxp", texts.group_help_cmd_addxp),
-                ("/promote", texts.group_help_cmd_promote),
-                ("/demote", texts.group_help_cmd_demote),
             ]
             for command, description in admin_commands:
                 lines.append(f"<b>{command}</b> — {description}")
