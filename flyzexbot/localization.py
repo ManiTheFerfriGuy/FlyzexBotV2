@@ -95,6 +95,20 @@ class TextPack:
     group_panel_action_error: str
     group_panel_ban_success: str
     group_panel_mute_success: str
+    group_panel_help_button: str
+    group_panel_refresh_button: str
+    group_panel_overview_title: str
+    group_panel_metric_tracked: str
+    group_panel_metric_total_xp: str
+    group_panel_metric_top_member: str
+    group_panel_metric_top_member_empty: str
+    group_panel_metric_cups: str
+    group_panel_metric_admins: str
+    group_panel_recent_cup: str
+    group_panel_last_activity: str
+    group_panel_unknown_chat: str
+    group_panel_actions_hint: str
+    group_panel_help_hint: str
     error_generic: str
     glass_panel_caption: str
     admin_list_header: str
@@ -146,6 +160,22 @@ class TextPack:
     dm_admin_panel_insights_languages_empty: str
     dm_admin_panel_insights_recent: str
     dm_admin_panel_insights_recent_empty: str
+    group_help_intro: str
+    group_help_member_title: str
+    group_help_cmd_help: str
+    group_help_cmd_myxp: str
+    group_help_cmd_xp: str
+    group_help_cmd_cups: str
+    group_help_admin_title: str
+    group_help_admin_hint: str
+    group_help_cmd_panel: str
+    group_help_cmd_add_cup: str
+    group_help_cmd_addxp: str
+    group_help_cmd_promote: str
+    group_help_cmd_demote: str
+    group_help_footer: str
+    group_myxp_response: str
+    group_myxp_no_data: str
     language_names: Dict[str, str]
 
 
@@ -263,7 +293,10 @@ PERSIAN_TEXTS = TextPack(
     group_demote_success="♻️ دسترسی ادمین {full_name} برداشته شد.",
     group_promote_already="ℹ️ این کاربر قبلاً تو لیست ادمین‌هاست.",
     group_demote_missing="ℹ️ این کاربر تو لیست ادمین‌ها پیدا نشد.",
-    group_panel_intro="<b>🛡️ کنترل‌پنل گیلد</b>\nیکی از دکمه‌های شیشه‌ای رو انتخاب کن تا کار پیش بره.",
+    group_panel_intro=(
+        "<b>🛡️ کنترل‌پنل {chat_title}</b>\n"
+        "همه‌چیز اینجاست؛ آمار گروه رو پایین ببین و از دکمه‌ها کمک بگیر."
+    ),
     group_panel_ban_button="حذف از گروه",
     group_panel_mute_button="بی‌صدا",
     group_panel_add_xp_button="افزودن XP",
@@ -284,6 +317,20 @@ PERSIAN_TEXTS = TextPack(
     group_panel_action_error="⚠️ الان نشد انجام بدیم؛ کمی بعد دوباره امتحان کن.",
     group_panel_ban_success="🚫 {full_name} از گروه خارج شد.",
     group_panel_mute_success="🔇 {full_name} بی‌صدا شد.",
+    group_panel_help_button="راهنما",
+    group_panel_refresh_button="تازه‌سازی",
+    group_panel_overview_title="📊 تصویر کلی گروه",
+    group_panel_metric_tracked="• اعضای ثبت‌شده: <b>{members}</b>",
+    group_panel_metric_total_xp="• مجموع XP ذخیره‌شده: <b>{total_xp}</b>",
+    group_panel_metric_top_member="• فعال‌ترین عضو: <b>{name}</b> با <code>{xp}</code> XP",
+    group_panel_metric_top_member_empty="• هنوز هیچ امتیاز تجربه‌ای ثبت نشده.",
+    group_panel_metric_cups="• جام‌های ثبت‌شده: <b>{count}</b>",
+    group_panel_metric_admins="• ادمین‌های ثبت‌شده: <b>{count}</b>",
+    group_panel_recent_cup="• تازه‌ترین جام: <b>{title}</b> ({created_at})",
+    group_panel_last_activity="• آخرین فعالیت: {timestamp}",
+    group_panel_unknown_chat="گروه",
+    group_panel_actions_hint="برای مدیریت سریع از دکمه‌های شیشه‌ای استفاده کن.",
+    group_panel_help_hint="هر زمان نیاز به توضیح داشتی، روی «راهنما» بزن یا /help رو بفرست.",
     error_generic="⚠️ اوه! مشکلی پیش اومد، یک بار دیگه تلاش کن.",
     glass_panel_caption=(
         "<i>یک تجربه شیشه‌ای با پس‌زمینه مه‌آلود و دکمه‌های درخشان که حس صمیمیت می‌ده.</i>"
@@ -359,6 +406,22 @@ PERSIAN_TEXTS = TextPack(
     dm_admin_panel_insights_languages_empty="فعلاً کسی زبان دلخواهش رو ثبت نکرده.",
     dm_admin_panel_insights_recent="<b>🕒 آخرین رویدادها:</b>\n{items}",
     dm_admin_panel_insights_recent_empty="چیزی برای نمایش وجود نداره.",
+    group_help_intro="راهنمای سریع دستورات گروه برای اعضا و ادمین‌ها.",
+    group_help_member_title="🎯 دستورات در دسترس همه",
+    group_help_cmd_help="نمایش همین راهنما.",
+    group_help_cmd_myxp="دیدن XP فعلی خودت.",
+    group_help_cmd_xp="مشاهدهٔ جدول XP گروه.",
+    group_help_cmd_cups="مشاهدهٔ افتخارات و جام‌های ثبت‌شده.",
+    group_help_admin_title="🛠️ دستورات مخصوص ادمین‌ها",
+    group_help_admin_hint="دستورات زیر نیاز به دسترسی ادمین دارند.",
+    group_help_cmd_panel="باز کردن کنترل‌پنل شیشه‌ای در گروه.",
+    group_help_cmd_add_cup="ثبت یک جام تازه با عنوان، توضیح و سکوها.",
+    group_help_cmd_addxp="افزودن XP دستی برای اعضا.",
+    group_help_cmd_promote="اضافه کردن ادمین جدید.",
+    group_help_cmd_demote="حذف یک ادمین از لیست.",
+    group_help_footer="برای ابزارهای بیشتر به وب‌اپ سر بزن یا از دکمهٔ تنظیمات استفاده کن.",
+    group_myxp_response="✨ {full_name} الان <b>{xp}</b> XP داره.",
+    group_myxp_no_data="هنوز هیچ XP برای تو ثبت نشده.",
     language_names={
         "fa": "فارسی",
         "en": "انگلیسی",
@@ -480,7 +543,10 @@ ENGLISH_TEXTS = TextPack(
     group_demote_success="♻️ {full_name} is no longer an admin.",
     group_promote_already="ℹ️ That member is already on the admin team.",
     group_demote_missing="ℹ️ That member isn't listed as an admin.",
-    group_panel_intro="<b>🛡️ Guild control panel</b>\nPick a glass button and let's take care of it.",
+    group_panel_intro=(
+        "<b>🛡️ {chat_title} control panel</b>\n"
+        "Check the snapshot below and use the glass buttons for quick actions."
+    ),
     group_panel_ban_button="Remove member",
     group_panel_mute_button="Mute",
     group_panel_add_xp_button="Add XP",
@@ -501,6 +567,20 @@ ENGLISH_TEXTS = TextPack(
     group_panel_action_error="⚠️ Couldn't finish that right now—please try again shortly.",
     group_panel_ban_success="🚫 {full_name} has been removed from the group.",
     group_panel_mute_success="🔇 {full_name} has been muted.",
+    group_panel_help_button="Help",
+    group_panel_refresh_button="Refresh",
+    group_panel_overview_title="📊 Group snapshot",
+    group_panel_metric_tracked="• Members tracked: <b>{members}</b>",
+    group_panel_metric_total_xp="• Total stored XP: <b>{total_xp}</b>",
+    group_panel_metric_top_member="• Top member: <b>{name}</b> with <code>{xp}</code> XP",
+    group_panel_metric_top_member_empty="• No XP has been recorded yet.",
+    group_panel_metric_cups="• Cups logged: <b>{count}</b>",
+    group_panel_metric_admins="• Admins on record: <b>{count}</b>",
+    group_panel_recent_cup="• Latest cup: <b>{title}</b> ({created_at})",
+    group_panel_last_activity="• Last recorded activity: {timestamp}",
+    group_panel_unknown_chat="the guild",
+    group_panel_actions_hint="Use the glass buttons below for quick moderation actions.",
+    group_panel_help_hint="Need details? Tap Help or send /help anytime.",
     error_generic="⚠️ Oops, something went wrong. Please try again.",
     glass_panel_caption=(
         "<i>A cozy glassmorphism experience with soft blur and vibrant buttons to keep things welcoming.</i>"
@@ -579,6 +659,22 @@ ENGLISH_TEXTS = TextPack(
     dm_admin_panel_insights_languages_empty="No language preferences have been recorded yet.",
     dm_admin_panel_insights_recent="<b>🕒 Recent activity:</b>\n{items}",
     dm_admin_panel_insights_recent_empty="Nothing to show just yet.",
+    group_help_intro="A quick reference of group commands for members and admins.",
+    group_help_member_title="🎯 Commands available to everyone",
+    group_help_cmd_help="Display this cheat sheet.",
+    group_help_cmd_myxp="Show your current XP.",
+    group_help_cmd_xp="Open the group XP leaderboard.",
+    group_help_cmd_cups="Open the cups and trophies board.",
+    group_help_admin_title="🛠️ Admin-only shortcuts",
+    group_help_admin_hint="You need admin rights to run the commands below.",
+    group_help_cmd_panel="Open the glass control panel inside the chat.",
+    group_help_cmd_add_cup="Register a new cup with title, description, and podium.",
+    group_help_cmd_addxp="Manually grant XP to a member.",
+    group_help_cmd_promote="Promote a member to admin.",
+    group_help_cmd_demote="Remove someone from the admin list.",
+    group_help_footer="For deeper controls, jump into the web dashboard or the DM admin panel.",
+    group_myxp_response="✨ {full_name} currently has <b>{xp}</b> XP.",
+    group_myxp_no_data="You don't have any XP in this chat yet.",
     language_names={
         "fa": "Persian",
         "en": "English",

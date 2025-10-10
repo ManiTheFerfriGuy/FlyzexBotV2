@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 from flyzexbot.handlers.group import GroupHandlers
 from flyzexbot.localization import PERSIAN_TEXTS
@@ -21,9 +21,11 @@ class DummyMessage:
     def __init__(self, text: str = "hello") -> None:
         self.text = text
         self.replies: list[str] = []
+        self.kwargs: list[dict[str, object]] = []
 
-    async def reply_text(self, text: str, **_: object) -> None:  # noqa: ANN003 - kwargs unused
+    async def reply_text(self, text: str, **kwargs: object) -> None:  # noqa: ANN003 - kwargs unused
         self.replies.append(text)
+        self.kwargs.append(dict(kwargs))
 
 
 class DummyUser:
@@ -91,3 +93,88 @@ def test_track_activity_handles_zero_reward() -> None:
         "username": user.username,
     }
     assert message.replies == []
+
+
+def test_command_help_includes_admin_section_for_admins() -> None:
+    storage = SimpleNamespace(get_user_xp=Mock(return_value=None), get_group_snapshot=Mock(return_value={}))
+    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler._is_admin = AsyncMock(return_value=True)  # type: ignore[method-assign]
+
+    chat = DummyChat()
+    user = DummyUser()
+    message = DummyMessage()
+    update = SimpleNamespace(effective_chat=chat, effective_user=user, effective_message=message)
+    context = DummyContext([])
+
+    asyncio.run(handler.command_help(update, context))
+
+    assert message.replies, "Expected help text to be sent"
+    text = message.replies[0]
+    assert PERSIAN_TEXTS.group_help_admin_title in text
+    assert "/panel" in text
+
+
+def test_command_help_hides_admin_section_for_members() -> None:
+    storage = SimpleNamespace(get_user_xp=Mock(return_value=None), get_group_snapshot=Mock(return_value={}))
+    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler._is_admin = AsyncMock(return_value=False)  # type: ignore[method-assign]
+
+    chat = DummyChat()
+    user = DummyUser()
+    message = DummyMessage()
+    update = SimpleNamespace(effective_chat=chat, effective_user=user, effective_message=message)
+    context = DummyContext([])
+
+    asyncio.run(handler.command_help(update, context))
+
+    assert message.replies, "Expected help text to be sent"
+    text = message.replies[0]
+    assert PERSIAN_TEXTS.group_help_admin_title not in text
+    assert "/panel" not in text
+
+
+def test_command_myxp_reports_total() -> None:
+    storage = SimpleNamespace(
+        get_user_xp=Mock(return_value=128),
+        get_group_snapshot=Mock(return_value={}),
+    )
+    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+
+    chat = DummyChat()
+    user = DummyUser()
+    message = DummyMessage()
+    update = SimpleNamespace(effective_chat=chat, effective_user=user, effective_message=message)
+    context = DummyContext([])
+
+    asyncio.run(handler.command_my_xp(update, context))
+
+    assert message.replies, "Expected XP response"
+    assert "128" in message.replies[0]
+
+
+def test_show_panel_escapes_snapshot_content() -> None:
+    snapshot = {
+        "members_tracked": 3,
+        "total_xp": 240,
+        "top_member": {"display": "Hero <One>", "xp": 120},
+        "cup_count": 2,
+        "recent_cup": {"title": "Cup <Alpha>", "created_at": "2024/05/01"},
+        "admins_tracked": 2,
+        "last_activity": "2024/05/20 · 10:00 UTC",
+    }
+    storage = SimpleNamespace(get_group_snapshot=Mock(return_value=snapshot))
+    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler._is_admin = AsyncMock(return_value=True)  # type: ignore[method-assign]
+
+    chat = SimpleNamespace(id=1, title="Guild <One>")
+    user = DummyUser()
+    message = DummyMessage()
+    update = SimpleNamespace(effective_chat=chat, effective_user=user, effective_message=message)
+    context = DummyContext([])
+
+    asyncio.run(handler.show_panel(update, context))
+
+    assert message.replies, "Expected panel message"
+    panel_text = message.replies[0]
+    assert "Guild &lt;One&gt;" in panel_text
+    assert "Hero &lt;One&gt;" in panel_text
