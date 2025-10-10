@@ -9,10 +9,109 @@ LANGUAGE_CODES: tuple[str, ...] = ("fa", "en")
 DEFAULT_LANGUAGE_LABELS: dict[str, str] = {"fa": "فارسی", "en": "English"}
 
 
-def group_admin_panel_keyboard(texts: TextPack | None = None) -> InlineKeyboardMarkup:
+def group_admin_panel_keyboard(
+    texts: TextPack | None = None,
+    *,
+    menu: str = "root",
+) -> InlineKeyboardMarkup:
     text_pack = texts or get_default_text_pack()
-    return InlineKeyboardMarkup(
-        [
+
+    if menu == "ban":
+        rows = [
+            [
+                InlineKeyboardButton(
+                    text=f"🚫 {text_pack.group_panel_menu_ban_execute_button}",
+                    callback_data="group_panel:action:ban",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"ℹ️ {text_pack.group_panel_menu_ban_help_button}",
+                    callback_data="group_panel:action:ban_help",
+                )
+            ],
+        ]
+    elif menu == "mute":
+        rows = [
+            [
+                InlineKeyboardButton(
+                    text=f"🔇 {text_pack.group_panel_menu_mute_execute_button}",
+                    callback_data="group_panel:action:mute",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"ℹ️ {text_pack.group_panel_menu_mute_help_button}",
+                    callback_data="group_panel:action:mute_help",
+                )
+            ],
+        ]
+    elif menu == "xp":
+        rows = [
+            [
+                InlineKeyboardButton(
+                    text=f"📋 {text_pack.group_panel_menu_xp_list_button}",
+                    callback_data="group_panel:action:xp_members",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"✨ {text_pack.group_panel_menu_xp_add_button}",
+                    callback_data="group_panel:action:add_xp",
+                ),
+                InlineKeyboardButton(
+                    text=f"➖ {text_pack.group_panel_menu_xp_remove_button}",
+                    callback_data="group_panel:action:remove_xp",
+                ),
+            ],
+        ]
+    elif menu == "cups":
+        rows = [
+            [
+                InlineKeyboardButton(
+                    text=f"🏆 {text_pack.group_panel_menu_cups_latest_button}",
+                    callback_data="group_panel:action:cups_latest",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"ℹ️ {text_pack.group_panel_menu_cups_howto_button}",
+                    callback_data="group_panel:action:cups_help",
+                )
+            ],
+        ]
+    elif menu == "admins":
+        rows = [
+            [
+                InlineKeyboardButton(
+                    text=f"🛡️ {text_pack.group_panel_menu_admins_list_button}",
+                    callback_data="group_panel:action:admins_list",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"ℹ️ {text_pack.group_panel_menu_admins_howto_button}",
+                    callback_data="group_panel:action:admins_help",
+                )
+            ],
+        ]
+    elif menu == "settings":
+        rows = [
+            [
+                InlineKeyboardButton(
+                    text=f"🌐 {text_pack.group_panel_menu_settings_tools_button}",
+                    callback_data="group_panel:action:settings_tools",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"ℹ️ {text_pack.group_panel_menu_settings_help_button}",
+                    callback_data="group_panel:action:settings_help",
+                )
+            ],
+        ]
+    else:
+        rows = [
             [
                 InlineKeyboardButton(
                     text=f"ℹ️ {text_pack.group_panel_help_button}",
@@ -26,31 +125,31 @@ def group_admin_panel_keyboard(texts: TextPack | None = None) -> InlineKeyboardM
             [
                 InlineKeyboardButton(
                     text=f"🚫 {text_pack.group_panel_ban_button}",
-                    callback_data="group_panel:ban",
+                    callback_data="group_panel:menu:ban",
                 ),
                 InlineKeyboardButton(
                     text=f"🔇 {text_pack.group_panel_mute_button}",
-                    callback_data="group_panel:mute",
+                    callback_data="group_panel:menu:mute",
                 ),
             ],
             [
                 InlineKeyboardButton(
                     text=f"✨ {text_pack.group_panel_add_xp_button}",
-                    callback_data="group_panel:add_xp",
+                    callback_data="group_panel:menu:xp",
                 ),
                 InlineKeyboardButton(
                     text=f"🏆 {text_pack.group_panel_manage_cups_button}",
-                    callback_data="group_panel:cups",
+                    callback_data="group_panel:menu:cups",
                 ),
             ],
             [
                 InlineKeyboardButton(
                     text=f"🛡️ {text_pack.group_panel_manage_admins_button}",
-                    callback_data="group_panel:admins",
+                    callback_data="group_panel:menu:admins",
                 ),
                 InlineKeyboardButton(
                     text=f"⚙️ {text_pack.group_panel_settings_button}",
-                    callback_data="group_panel:settings",
+                    callback_data="group_panel:menu:settings",
                 ),
             ],
             [
@@ -60,7 +159,18 @@ def group_admin_panel_keyboard(texts: TextPack | None = None) -> InlineKeyboardM
                 )
             ],
         ]
-    )
+
+    if menu != "root":
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"⬅️ {text_pack.group_panel_menu_back_button}",
+                    callback_data="group_panel:menu:root",
+                )
+            ]
+        )
+
+    return InlineKeyboardMarkup(rows)
 
 
 def glass_dm_welcome_keyboard(

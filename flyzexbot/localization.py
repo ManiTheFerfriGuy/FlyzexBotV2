@@ -68,6 +68,7 @@ class TextPack:
     group_add_cup_invalid_format: str
     group_add_xp_usage: str
     group_add_xp_success: str
+    group_remove_xp_success: str
     group_promote_usage: str
     group_demote_usage: str
     group_promote_success: str
@@ -85,6 +86,7 @@ class TextPack:
     group_panel_ban_prompt: str
     group_panel_mute_prompt: str
     group_panel_add_xp_prompt: str
+    group_panel_remove_xp_prompt: str
     group_panel_cups_hint: str
     group_panel_admins_hint: str
     group_panel_settings_hint: str
@@ -109,6 +111,39 @@ class TextPack:
     group_panel_unknown_chat: str
     group_panel_actions_hint: str
     group_panel_help_hint: str
+    group_panel_menu_back_button: str
+    group_panel_menu_ban_title: str
+    group_panel_menu_ban_description: str
+    group_panel_menu_ban_execute_button: str
+    group_panel_menu_ban_help_button: str
+    group_panel_menu_mute_title: str
+    group_panel_menu_mute_description: str
+    group_panel_menu_mute_execute_button: str
+    group_panel_menu_mute_help_button: str
+    group_panel_menu_xp_title: str
+    group_panel_menu_xp_description: str
+    group_panel_menu_xp_list_button: str
+    group_panel_menu_xp_add_button: str
+    group_panel_menu_xp_remove_button: str
+    group_panel_menu_xp_members_header: str
+    group_panel_menu_xp_members_entry: str
+    group_panel_menu_xp_members_empty: str
+    group_panel_menu_cups_title: str
+    group_panel_menu_cups_description: str
+    group_panel_menu_cups_latest_button: str
+    group_panel_menu_cups_howto_button: str
+    group_panel_menu_admins_title: str
+    group_panel_menu_admins_description: str
+    group_panel_menu_admins_list_button: str
+    group_panel_menu_admins_list_header: str
+    group_panel_menu_admins_list_entry: str
+    group_panel_menu_admins_list_empty: str
+    group_panel_menu_admins_list_unknown: str
+    group_panel_menu_admins_howto_button: str
+    group_panel_menu_settings_title: str
+    group_panel_menu_settings_description: str
+    group_panel_menu_settings_tools_button: str
+    group_panel_menu_settings_help_button: str
     error_generic: str
     glass_panel_caption: str
     admin_list_header: str
@@ -287,6 +322,7 @@ PERSIAN_TEXTS = TextPack(
     group_add_cup_invalid_format="ساختار پیام درست نیست؛ با جداکننده | امتحان کن.",
     group_add_xp_usage="نحوه استفاده: /addxp شناسه‌کاربر مقدار (یا در پاسخ به پیام کاربر مقدار رو بفرست)",
     group_add_xp_success="✨ امتیاز {full_name} به {xp} رسید!",
+    group_remove_xp_success="➖ امتیاز {full_name} به {xp} کاهش پیدا کرد.",
     group_promote_usage="برای اضافه کردن ادمین، شناسه رو بفرست یا به پیامش پاسخ بده.",
     group_demote_usage="برای حذف ادمین، شناسه رو بفرست یا به پیامش پاسخ بده.",
     group_promote_success="🛡️ {full_name} حالا دسترسی ادمین داره.",
@@ -307,6 +343,7 @@ PERSIAN_TEXTS = TextPack(
     group_panel_ban_prompt="برای حذف عضو، به پیامش پاسخ بده یا برای لغو «cancel» رو بفرست.",
     group_panel_mute_prompt="برای بی‌صدا کردن، به پیامش پاسخ بده یا «cancel» رو برای لغو بنویس.",
     group_panel_add_xp_prompt="به پیام عضو جواب بده و مقدار XP رو بفرست. برای لغو «cancel» کافیه.",
+    group_panel_remove_xp_prompt="برای کم کردن XP، به پیام عضو جواب بده و مقدار رو بفرست. با «cancel» هم می‌تونی منصرف شی.",
     group_panel_cups_hint="برای ثبت جام جدید از دستور /add_cup کمک بگیر.",
     group_panel_admins_hint="برای مدیریت ادمین‌ها از /promote و /demote استفاده کن.",
     group_panel_settings_hint="برای تنظیمات بیشتر می‌تونی سر بزنی به پنل وب یا پیام خصوصی.",
@@ -331,6 +368,39 @@ PERSIAN_TEXTS = TextPack(
     group_panel_unknown_chat="گروه",
     group_panel_actions_hint="برای مدیریت سریع از دکمه‌های شیشه‌ای استفاده کن.",
     group_panel_help_hint="هر زمان نیاز به توضیح داشتی، روی «راهنما» بزن یا /help رو بفرست.",
+    group_panel_menu_back_button="بازگشت به پنل",
+    group_panel_menu_ban_title="🚫 حذف عضو از گروه",
+    group_panel_menu_ban_description="یکی از گزینه‌های زیر رو انتخاب کن تا عضو موردنظر رو خارج کنی.",
+    group_panel_menu_ban_execute_button="شروع حذف با پاسخ به پیام",
+    group_panel_menu_ban_help_button="یادآوری روش حذف",
+    group_panel_menu_mute_title="🔇 ساکت کردن عضو",
+    group_panel_menu_mute_description="برای بی‌صدا کردن موقتی، از گزینه‌های پایین کمک بگیر.",
+    group_panel_menu_mute_execute_button="شروع بی‌صدا کردن",
+    group_panel_menu_mute_help_button="راهنمای بی‌صدا کردن",
+    group_panel_menu_xp_title="✨ مدیریت XP اعضا",
+    group_panel_menu_xp_description="می‌تونی لیست اعضای ثبت‌شده رو ببینی یا به سرعت امتیاز رو تغییر بدی.",
+    group_panel_menu_xp_list_button="نمایش اعضای ثبت‌شده",
+    group_panel_menu_xp_add_button="افزایش XP",
+    group_panel_menu_xp_remove_button="کاهش XP",
+    group_panel_menu_xp_members_header="📋 لیست ۱۰ عضو برتر ({count} نفر):\n{members}",
+    group_panel_menu_xp_members_entry="{index}. <b>{name}</b> — <code>{xp}</code> XP",
+    group_panel_menu_xp_members_empty="فعلاً هیچ امتیازی برای اعضا ثبت نشده.",
+    group_panel_menu_cups_title="🏆 ابزارهای مدیریت جام",
+    group_panel_menu_cups_description="سریع آخرین جام‌ها رو ببین یا یادت بندازیم چطور جام جدید ثبت کنی.",
+    group_panel_menu_cups_latest_button="نمایش آخرین جام‌ها",
+    group_panel_menu_cups_howto_button="راهنمای ثبت جام",
+    group_panel_menu_admins_title="🛡️ مدیریت لیست ادمین‌ها",
+    group_panel_menu_admins_description="لیست فعلی رو ببین یا دستورهای ارتقا و عزل رو یادآوری کن.",
+    group_panel_menu_admins_list_button="نمایش ادمین‌های ثبت‌شده",
+    group_panel_menu_admins_list_header="🛡️ ادمین‌های ثبت‌شده ({count} نفر):\n{admins}",
+    group_panel_menu_admins_list_entry="• <b>{display}</b> — <code>{user_id}</code>",
+    group_panel_menu_admins_list_empty="فعلاً هیچ ادمینی ثبت نشده.",
+    group_panel_menu_admins_list_unknown="کاربر ناشناس",
+    group_panel_menu_admins_howto_button="راهنمای مدیریت ادمین‌ها",
+    group_panel_menu_settings_title="⚙️ تنظیمات و ابزارهای بیشتر",
+    group_panel_menu_settings_description="برای تغییرات عمیق‌تر می‌تونی از ابزارهای پیشنهادی زیر کمک بگیری.",
+    group_panel_menu_settings_tools_button="باز کردن ابزارهای بیشتر",
+    group_panel_menu_settings_help_button="راهنمای تنظیمات",
     error_generic="⚠️ اوه! مشکلی پیش اومد، یک بار دیگه تلاش کن.",
     glass_panel_caption=(
         "<i>یک تجربه شیشه‌ای با پس‌زمینه مه‌آلود و دکمه‌های درخشان که حس صمیمیت می‌ده.</i>"
@@ -537,6 +607,7 @@ ENGLISH_TEXTS = TextPack(
     group_add_cup_invalid_format="That format doesn't look right—use the | separator.",
     group_add_xp_usage="How to use: /addxp user_id amount (or reply to their message with the amount)",
     group_add_xp_success="✨ {full_name}'s XP now sits at {xp}!",
+    group_remove_xp_success="➖ {full_name}'s XP has been reduced to {xp}.",
     group_promote_usage="To add an admin, send their ID or reply to one of their messages.",
     group_demote_usage="To remove an admin, send their ID or reply to one of their messages.",
     group_promote_success="🛡️ {full_name} now has admin access.",
@@ -557,6 +628,7 @@ ENGLISH_TEXTS = TextPack(
     group_panel_ban_prompt="Reply to the member you want to remove, or type 'cancel' to back out.",
     group_panel_mute_prompt="Reply to the member you want to mute, or type 'cancel' to back out.",
     group_panel_add_xp_prompt="Reply to the member and send the XP amount. Type 'cancel' to back out.",
+    group_panel_remove_xp_prompt="Reply to the member and send the amount you want to subtract. Type 'cancel' to back out.",
     group_panel_cups_hint="Use /add_cup to log a new trophy run.",
     group_panel_admins_hint="Use /promote and /demote to adjust admin roles.",
     group_panel_settings_hint="For deeper settings, open the web dashboard or DM panel.",
@@ -581,6 +653,39 @@ ENGLISH_TEXTS = TextPack(
     group_panel_unknown_chat="the guild",
     group_panel_actions_hint="Use the glass buttons below for quick moderation actions.",
     group_panel_help_hint="Need details? Tap Help or send /help anytime.",
+    group_panel_menu_back_button="Back to panel",
+    group_panel_menu_ban_title="🚫 Remove a member",
+    group_panel_menu_ban_description="Pick one of the tools below to remove a member safely.",
+    group_panel_menu_ban_execute_button="Start removal by replying",
+    group_panel_menu_ban_help_button="Removal instructions",
+    group_panel_menu_mute_title="🔇 Silence a member",
+    group_panel_menu_mute_description="Temporarily restrict a member using the shortcuts below.",
+    group_panel_menu_mute_execute_button="Start muting",
+    group_panel_menu_mute_help_button="Muting instructions",
+    group_panel_menu_xp_title="✨ XP management tools",
+    group_panel_menu_xp_description="Review tracked members or adjust their XP right from here.",
+    group_panel_menu_xp_list_button="Show tracked members",
+    group_panel_menu_xp_add_button="Increase XP",
+    group_panel_menu_xp_remove_button="Decrease XP",
+    group_panel_menu_xp_members_header="📋 Top 10 tracked members ({count} total):\n{members}",
+    group_panel_menu_xp_members_entry="{index}. <b>{name}</b> — <code>{xp}</code> XP",
+    group_panel_menu_xp_members_empty="No XP has been recorded for members yet.",
+    group_panel_menu_cups_title="🏆 Cup management tools",
+    group_panel_menu_cups_description="Quickly review recent cups or revisit how to log a new one.",
+    group_panel_menu_cups_latest_button="Show latest cups",
+    group_panel_menu_cups_howto_button="Cup logging guide",
+    group_panel_menu_admins_title="🛡️ Admin roster tools",
+    group_panel_menu_admins_description="Check who's on the team or refresh the promote/demote steps.",
+    group_panel_menu_admins_list_button="Show tracked admins",
+    group_panel_menu_admins_list_header="🛡️ Recorded admins ({count}):\n{admins}",
+    group_panel_menu_admins_list_entry="• <b>{display}</b> — <code>{user_id}</code>",
+    group_panel_menu_admins_list_empty="No admins have been recorded yet.",
+    group_panel_menu_admins_list_unknown="Unknown member",
+    group_panel_menu_admins_howto_button="Admin management guide",
+    group_panel_menu_settings_title="⚙️ Settings & extra tools",
+    group_panel_menu_settings_description="Use the quick links below to jump into deeper configuration.",
+    group_panel_menu_settings_tools_button="Open advanced tools",
+    group_panel_menu_settings_help_button="Settings guide",
     error_generic="⚠️ Oops, something went wrong. Please try again.",
     glass_panel_caption=(
         "<i>A cozy glassmorphism experience with soft blur and vibrant buttons to keep things welcoming.</i>"
