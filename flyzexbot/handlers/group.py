@@ -52,8 +52,6 @@ class GroupHandlers:
             CommandHandler("cups", self.show_cup_leaderboard, filters=filters.ChatType.GROUPS),
             CommandHandler("add_cup", self.add_cup, filters=filters.ChatType.GROUPS),
             CommandHandler("addxp", self.command_add_xp, filters=filters.ChatType.GROUPS),
-            CommandHandler("promote", self.command_promote_admin, filters=filters.ChatType.GROUPS),
-            CommandHandler("demote", self.command_demote_admin, filters=filters.ChatType.GROUPS),
             CommandHandler("panel", self.show_panel, filters=filters.ChatType.GROUPS),
             CallbackQueryHandler(self.handle_leaderboard_refresh, pattern=r"^leaderboard:"),
             CallbackQueryHandler(self.handle_panel_action, pattern=r"^group_panel:"),
@@ -156,12 +154,6 @@ class GroupHandlers:
                 xp=total,
             )
         )
-
-    async def command_promote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self._handle_admin_toggle(update, context, promote=True)
-
-    async def command_demote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self._handle_admin_toggle(update, context, promote=False)
 
     async def command_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat = update.effective_chat
@@ -397,8 +389,6 @@ class GroupHandlers:
                 ("/panel", texts.group_help_cmd_panel),
                 ("/add_cup", texts.group_help_cmd_add_cup),
                 ("/addxp", texts.group_help_cmd_addxp),
-                ("/promote", texts.group_help_cmd_promote),
-                ("/demote", texts.group_help_cmd_demote),
             ]
             for command, description in admin_commands:
                 lines.append(f"<b>{command}</b> — {description}")
@@ -471,63 +461,6 @@ class GroupHandlers:
         text = "\n".join(lines)
         markup = group_admin_panel_keyboard(texts)
         return (text, markup)
-
-    async def _handle_admin_toggle(
-        self,
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
-        *,
-        promote: bool,
-    ) -> None:
-        chat = update.effective_chat
-        actor = update.effective_user
-        message = update.effective_message
-        if chat is None or actor is None or message is None:
-            return
-        texts = self._get_texts(context, getattr(actor, "language_code", None))
-        if not await self._is_admin(context, chat.id, actor.id):
-            await message.reply_text(texts.dm_admin_only)
-            return
-
-        target_user = self._resolve_target_from_message(message)
-        if target_user is None and context.args:
-            fetched = await self._fetch_member(context, chat.id, context.args[0])
-            if fetched:
-                target_user = fetched
-        if target_user is None and message.reply_to_message and message.reply_to_message.from_user:
-            target_user = message.reply_to_message.from_user
-        if target_user is None:
-            usage = texts.group_promote_usage if promote else texts.group_demote_usage
-            await message.reply_text(usage)
-            return
-
-        try:
-            if promote:
-                changed = await self.storage.add_admin(
-                    target_user.id,
-                    username=getattr(target_user, "username", None),
-                    full_name=getattr(target_user, "full_name", None),
-                )
-            else:
-                changed = await self.storage.remove_admin(target_user.id)
-        except Exception as exc:
-            LOGGER.error("Failed to toggle admin: %s", exc)
-            await message.reply_text(texts.error_generic)
-            return
-
-        if promote and not changed:
-            await message.reply_text(texts.group_promote_already)
-            return
-        if not promote and not changed:
-            await message.reply_text(texts.group_demote_missing)
-            return
-
-        confirmation = texts.group_promote_success if promote else texts.group_demote_success
-        await message.reply_text(
-            confirmation.format(
-                full_name=target_user.full_name or target_user.username or target_user.id
-            )
-        )
 
     async def _maybe_handle_panel_response(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
