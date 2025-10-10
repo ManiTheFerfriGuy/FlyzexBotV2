@@ -3,7 +3,7 @@ from __future__ import annotations
 from html import escape
 import logging
 import time
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 from telegram import ChatMember, ChatPermissions, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
@@ -207,7 +207,8 @@ class GroupHandlers:
             await message.reply_text(texts.dm_admin_only)
             return
 
-        panel_text, markup = self._compose_group_panel(chat, texts)
+        context.chat_data["group_panel_active_menu"] = "root"
+        panel_text, markup = self._compose_group_panel(chat, texts, menu="root")
         await message.reply_text(
             panel_text,
             parse_mode=ParseMode.HTML,
@@ -229,18 +230,29 @@ class GroupHandlers:
             return
         texts = self._get_texts(context, getattr(user, "language_code", None))
         await query.answer()
-        _, action = query.data.split(":", 1)
-        if action == "close":
+        parts = query.data.split(":")
+        if len(parts) < 2:
+            return
+        scope = parts[1]
+        argument = parts[2] if len(parts) > 2 else None
+
+        if scope == "close":
             if message:
                 try:
                     await message.edit_text(texts.group_panel_closed)
                 except Exception:
                     await message.reply_text(texts.group_panel_closed)
+            context.chat_data.pop("group_panel_active_menu", None)
             return
 
-        if action == "refresh":
+        if scope == "refresh":
+            active_menu = context.chat_data.get("group_panel_active_menu", "root")
             if message:
-                panel_text, markup = self._compose_group_panel(chat, texts)
+                panel_text, markup = self._compose_group_panel(
+                    chat,
+                    texts,
+                    menu=str(active_menu),
+                )
                 try:
                     await message.edit_text(
                         panel_text,
@@ -256,7 +268,7 @@ class GroupHandlers:
             await self.analytics.record("group.panel_refreshed")
             return
 
-        if action == "help":
+        if scope == "help":
             help_text = self._build_help_text(texts, include_admin=True)
             if message:
                 await message.reply_text(
@@ -267,24 +279,82 @@ class GroupHandlers:
             await self.analytics.record("group.help_requested")
             return
 
-        if action in {"ban", "mute", "add_xp"}:
+        if scope == "menu":
+            target_menu = argument or "root"
+            context.chat_data["group_panel_active_menu"] = target_menu
+            if message:
+                panel_text, markup = self._compose_group_panel(
+                    chat,
+                    texts,
+                    menu=target_menu,
+                )
+                try:
+                    await message.edit_text(
+                        panel_text,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=markup,
+                    )
+                except Exception:
+                    await message.reply_text(
+                        panel_text,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=markup,
+                    )
+            return
+
+        if scope != "action":
+            return
+
+        action = argument or ""
+        if action in {"ban", "mute", "add_xp", "remove_xp"}:
             pending = context.chat_data.setdefault("group_panel_pending", {})
             pending[user.id] = {"action": action}
             prompt_key = {
-                "ban": "group_panel_ban_prompt",
-                "mute": "group_panel_mute_prompt",
-                "add_xp": "group_panel_add_xp_prompt",
+                "ban": texts.group_panel_ban_prompt,
+                "mute": texts.group_panel_mute_prompt,
+                "add_xp": texts.group_panel_add_xp_prompt,
+                "remove_xp": texts.group_panel_remove_xp_prompt,
             }[action]
-            await message.reply_text(getattr(texts, prompt_key))
+            await message.reply_text(prompt_key)
             return
 
-        info_messages = {
-            "cups": texts.group_panel_cups_hint,
-            "admins": texts.group_panel_admins_hint,
-            "settings": texts.group_panel_settings_hint,
-        }
-        if action in info_messages:
-            await message.reply_text(info_messages[action])
+        if action == "ban_help":
+            await message.reply_text(texts.group_panel_ban_prompt)
+            return
+
+        if action == "mute_help":
+            await message.reply_text(texts.group_panel_mute_prompt)
+            return
+
+        if action == "xp_members":
+            await self._send_xp_members_overview(context, chat.id, message, texts)
+            return
+
+        if action == "cups_latest":
+            text, mode, markup = self._compose_cup_leaderboard(chat.id, texts)
+            kwargs: Dict[str, Any] = {}
+            if mode:
+                kwargs["parse_mode"] = mode
+            if markup:
+                kwargs["reply_markup"] = markup
+            await message.reply_text(text, **kwargs)
+            return
+
+        if action == "cups_help":
+            await message.reply_text(texts.group_panel_cups_hint)
+            return
+
+        if action == "admins_list":
+            admins_text = self._render_admins_list(texts)
+            await message.reply_text(admins_text, parse_mode=ParseMode.HTML)
+            return
+
+        if action == "admins_help":
+            await message.reply_text(texts.group_panel_admins_hint)
+            return
+
+        if action in {"settings_tools", "settings_help"}:
+            await message.reply_text(texts.group_panel_settings_hint)
 
     async def show_xp_leaderboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat = update.effective_chat
@@ -396,7 +466,13 @@ class GroupHandlers:
         lines.extend(["", texts.group_help_footer])
         return "\n".join(lines).strip()
 
-    def _compose_group_panel(self, chat, texts: TextPack) -> Tuple[str, InlineKeyboardMarkup]:
+    def _compose_group_panel(
+        self,
+        chat,
+        texts: TextPack,
+        *,
+        menu: str = "root",
+    ) -> Tuple[str, InlineKeyboardMarkup]:
         snapshot = self.storage.get_group_snapshot(getattr(chat, "id", 0)) or {}
         chat_title_raw = (
             getattr(chat, "title", None)
@@ -457,10 +533,198 @@ class GroupHandlers:
             metrics.append(texts.group_panel_last_activity.format(timestamp=last_activity))
 
         lines.append("\n".join(metrics))
-        lines.extend(["", texts.group_panel_actions_hint, texts.group_panel_help_hint])
-        text = "\n".join(lines)
-        markup = group_admin_panel_keyboard(texts)
+        lines.append("")
+        lines.append(texts.group_panel_actions_hint)
+
+        menu_block = self._build_panel_menu_block(menu, texts)
+        if menu_block:
+            lines.append("")
+            lines.extend(menu_block)
+
+        lines.append("")
+        lines.append(texts.group_panel_help_hint)
+
+        text = "\n".join(line for line in lines if line is not None).strip()
+        markup = group_admin_panel_keyboard(texts, menu=menu)
         return (text, markup)
+
+    def _build_panel_menu_block(self, menu: str, texts: TextPack) -> List[str]:
+        mapping: Dict[str, Tuple[str, str]] = {
+            "ban": (
+                texts.group_panel_menu_ban_title,
+                texts.group_panel_menu_ban_description,
+            ),
+            "mute": (
+                texts.group_panel_menu_mute_title,
+                texts.group_panel_menu_mute_description,
+            ),
+            "xp": (
+                texts.group_panel_menu_xp_title,
+                texts.group_panel_menu_xp_description,
+            ),
+            "cups": (
+                texts.group_panel_menu_cups_title,
+                texts.group_panel_menu_cups_description,
+            ),
+            "admins": (
+                texts.group_panel_menu_admins_title,
+                texts.group_panel_menu_admins_description,
+            ),
+            "settings": (
+                texts.group_panel_menu_settings_title,
+                texts.group_panel_menu_settings_description,
+            ),
+        }
+        if menu not in mapping:
+            return []
+        title, description = mapping[menu]
+        block: List[str] = [title]
+        if description:
+            block.append(description)
+        return block
+
+    async def _send_xp_members_overview(
+        self,
+        context: ContextTypes.DEFAULT_TYPE,
+        chat_id: int,
+        message,
+        texts: TextPack,
+    ) -> None:
+        limit = 10 if self.xp_limit <= 0 else min(self.xp_limit, 10)
+        leaderboard = self.storage.get_xp_leaderboard(chat_id, max(limit, 1))
+        if not leaderboard:
+            await message.reply_text(texts.group_panel_menu_xp_members_empty)
+            return
+
+        resolved = await self._resolve_leaderboard_names(
+            context,
+            chat_id,
+            leaderboard,
+        )
+        lines: List[str] = []
+        for index, (display_name, xp) in enumerate(resolved, start=1):
+            safe_name = escape(str(display_name))
+            lines.append(
+                texts.group_panel_menu_xp_members_entry.format(
+                    index=index,
+                    name=safe_name,
+                    xp=xp,
+                )
+            )
+        members_block = "\n".join(lines)
+        text = texts.group_panel_menu_xp_members_header.format(
+            count=len(leaderboard),
+            members=members_block,
+        )
+        await message.reply_text(text, parse_mode=ParseMode.HTML)
+
+    def _render_admins_list(self, texts: TextPack) -> str:
+        details_getter = getattr(self.storage, "get_admin_details", None)
+        details: List[Dict[str, Any]] | None = None
+        if callable(details_getter):
+            details = details_getter()
+        else:
+            list_getter = getattr(self.storage, "list_admins", None)
+            if callable(list_getter):
+                details = [{"user_id": admin_id} for admin_id in list_getter()]
+
+        if not details:
+            return texts.group_panel_menu_admins_list_empty
+
+        entries: List[str] = []
+        for entry in details:
+            user_id = entry.get("user_id")
+            if user_id is None:
+                continue
+
+            parts: List[str] = []
+            full_name = entry.get("full_name")
+            if full_name:
+                parts.append(escape(str(full_name)))
+
+            username = entry.get("username")
+            if username:
+                normalised = str(username).lstrip("@")
+                if normalised:
+                    parts.append(f"@{escape(normalised)}")
+
+            if not parts:
+                parts.append(texts.group_panel_menu_admins_list_unknown)
+
+            display = " / ".join(parts)
+            safe_user_id = escape(str(user_id))
+            entries.append(
+                texts.group_panel_menu_admins_list_entry.format(
+                    display=display,
+                    user_id=safe_user_id,
+                )
+            )
+
+        if not entries:
+            return texts.group_panel_menu_admins_list_empty
+
+        admins_block = "\n".join(entries)
+        return texts.group_panel_menu_admins_list_header.format(
+            count=len(entries),
+            admins=admins_block,
+        )
+
+    async def _handle_admin_toggle(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        *,
+        promote: bool,
+    ) -> None:
+        chat = update.effective_chat
+        actor = update.effective_user
+        message = update.effective_message
+        if chat is None or actor is None or message is None:
+            return
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        if not await self._is_admin(context, chat.id, actor.id):
+            await message.reply_text(texts.dm_admin_only)
+            return
+
+        target_user = self._resolve_target_from_message(message)
+        if target_user is None and context.args:
+            fetched = await self._fetch_member(context, chat.id, context.args[0])
+            if fetched:
+                target_user = fetched
+        if target_user is None and message.reply_to_message and message.reply_to_message.from_user:
+            target_user = message.reply_to_message.from_user
+        if target_user is None:
+            usage = texts.group_promote_usage if promote else texts.group_demote_usage
+            await message.reply_text(usage)
+            return
+
+        try:
+            if promote:
+                changed = await self.storage.add_admin(
+                    target_user.id,
+                    username=getattr(target_user, "username", None),
+                    full_name=getattr(target_user, "full_name", None),
+                )
+            else:
+                changed = await self.storage.remove_admin(target_user.id)
+        except Exception as exc:
+            LOGGER.error("Failed to toggle admin: %s", exc)
+            await message.reply_text(texts.error_generic)
+            return
+
+        if promote and not changed:
+            await message.reply_text(texts.group_promote_already)
+            return
+        if not promote and not changed:
+            await message.reply_text(texts.group_demote_missing)
+            return
+
+        confirmation = texts.group_promote_success if promote else texts.group_demote_success
+        await message.reply_text(
+            confirmation.format(
+                full_name=target_user.full_name or target_user.username or target_user.id
+            )
+        )
 
     async def _maybe_handle_panel_response(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -520,7 +784,7 @@ class GroupHandlers:
             )
             return True
 
-        if action == "add_xp":
+        if action in {"add_xp", "remove_xp"}:
             target = self._resolve_target_from_message(message)
             if target is None:
                 await message.reply_text(texts.group_panel_invalid_target)
@@ -530,6 +794,13 @@ class GroupHandlers:
             except (TypeError, ValueError):
                 await message.reply_text(texts.group_add_xp_usage)
                 return True
+            if amount == 0:
+                await message.reply_text(texts.group_add_xp_usage)
+                return True
+            if action == "add_xp" and amount < 0:
+                amount = abs(amount)
+            if action == "remove_xp":
+                amount = -abs(amount)
             try:
                 total = await self.storage.add_xp(
                     chat.id,
@@ -543,8 +814,12 @@ class GroupHandlers:
                 await message.reply_text(texts.error_generic)
                 return True
             pending_map.pop(actor.id, None)
+            if action == "add_xp":
+                template = texts.group_add_xp_success
+            else:
+                template = texts.group_remove_xp_success
             await message.reply_text(
-                texts.group_add_xp_success.format(
+                template.format(
                     full_name=target.full_name or target.username or target.id,
                     xp=total,
                 )

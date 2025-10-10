@@ -178,3 +178,14 @@ def test_show_panel_escapes_snapshot_content() -> None:
     panel_text = message.replies[0]
     assert "Guild &lt;One&gt;" in panel_text
     assert "Hero &lt;One&gt;" in panel_text
+
+
+def test_compose_group_panel_menu_includes_section_text() -> None:
+    storage = SimpleNamespace(get_group_snapshot=Mock(return_value={}))
+    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+
+    chat = SimpleNamespace(id=1, title="Guild")
+    text, markup = handler._compose_group_panel(chat, PERSIAN_TEXTS, menu="xp")
+
+    assert PERSIAN_TEXTS.group_panel_menu_xp_title in text
+    assert markup.inline_keyboard[0][0].callback_data == "group_panel:action:xp_members"
