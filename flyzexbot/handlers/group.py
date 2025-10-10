@@ -42,7 +42,10 @@ class GroupHandlers:
 
     def build_handlers(self) -> list:
         return [
-            MessageHandler(filters.TEXT & filters.ChatType.GROUPS, self.track_activity),
+            MessageHandler(
+                filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND,
+                self.track_activity,
+            ),
             CommandHandler("help", self.command_help, filters=filters.ChatType.GROUPS),
             CommandHandler("myxp", self.command_my_xp, filters=filters.ChatType.GROUPS),
             CommandHandler("xp", self.show_xp_leaderboard, filters=filters.ChatType.GROUPS),
