@@ -92,6 +92,7 @@ def test_xp_and_cups(tmp_path: Path) -> None:
         assert score == 10
         leaderboard = storage.get_xp_leaderboard(100, 5)
         assert leaderboard == [("1", 10)]
+        assert storage.get_user_xp(100, 1) == 10
         profile = storage.get_any_profile(1)
         assert profile["full_name"] == "Hero"
         assert profile["username"] == "hero"
@@ -127,6 +128,34 @@ def test_profile_identifier_lookup(tmp_path: Path) -> None:
         assert missing_id is None
         assert missing_profile["username"] == "UnknownUser"
         assert missing_profile["full_name"] is None
+
+    asyncio.run(runner())
+
+
+def test_group_snapshot(tmp_path: Path) -> None:
+    storage = Storage(tmp_path / "store.json")
+
+    async def runner() -> None:
+        await storage.load()
+        await storage.add_admin(501)
+        await storage.add_xp(
+            300,
+            42,
+            7,
+            full_name="Ace <One>",
+            username="@ace",
+        )
+        await storage.add_cup(300, "Champ <Cup>", "Desc", ["42"])
+
+        snapshot = storage.get_group_snapshot(300)
+        assert snapshot["members_tracked"] == 1
+        assert snapshot["total_xp"] == 7
+        assert snapshot["cup_count"] == 1
+        assert snapshot["admins_tracked"] >= 1
+        assert snapshot["top_member"] is not None
+        assert snapshot["top_member"]["display"].startswith("Ace")
+        assert snapshot["recent_cup"]["title"] == "Champ <Cup>"
+        assert snapshot["last_activity"]
 
     asyncio.run(runner())
 

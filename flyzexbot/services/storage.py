@@ -757,8 +757,10 @@ class Storage:
             chats = profile.setdefault("chats", [])
             if str(chat_key) not in chats:
                 chats.append(str(chat_key))
+            now = datetime.now(LOCAL_TIMEZONE)
             profile["last_chat"] = chat_key
-            profile["updated_at"] = format_timestamp()
+            profile["updated_at"] = format_timestamp(now)
+            profile["updated_at_iso"] = now.isoformat()
 
         await self.save()
         LOGGER.debug(
@@ -777,6 +779,107 @@ class Storage:
         scores = self._state.xp.get(chat_key, {})
         sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
         return sorted_scores[:limit]
+
+    def get_user_xp(self, chat_id: int, user_id: int) -> Optional[int]:
+        chat_scores = self._state.xp.get(str(chat_id))
+        if not chat_scores:
+            return None
+        value = chat_scores.get(str(user_id))
+        try:
+            return int(str(value))
+        except Exception:
+            return None
+
+    def get_xp_profile(self, user_id: int | str) -> Optional[Dict[str, Any]]:
+        profile = self._state.xp_profiles.get(str(user_id))
+        if profile is None:
+            return None
+        return dict(profile)
+
+    def get_group_snapshot(self, chat_id: int) -> Dict[str, Any]:
+        chat_key = str(chat_id)
+        scores = self._state.xp.get(chat_key, {}) or {}
+
+        members_tracked = 0
+        total_xp = 0
+        top_pair: Optional[Tuple[str, int]] = None
+        for user_key, raw_value in scores.items():
+            try:
+                value_int = int(raw_value)
+            except Exception:
+                continue
+            members_tracked += 1
+            total_xp += value_int
+            if top_pair is None or value_int > top_pair[1]:
+                top_pair = (str(user_key), value_int)
+
+        top_member: Optional[Dict[str, Any]] = None
+        if top_pair is not None:
+            user_key, xp_value = top_pair
+            profile = self._state.xp_profiles.get(user_key, {})
+            display_name = (
+                profile.get("full_name")
+                or profile.get("username")
+                or user_key
+            )
+            try:
+                resolved_id = int(user_key)
+            except Exception:
+                resolved_id = user_key
+            top_member = {
+                "user_id": resolved_id,
+                "display": display_name,
+                "xp": xp_value,
+            }
+
+        cups = list(self._state.cups.get(chat_key, []))
+        cup_count = len(cups)
+        recent_cup: Optional[Dict[str, Any]] = None
+        if cups:
+            latest = max(cups, key=lambda item: item.get("created_at") or "")
+            recent_cup = {
+                "title": latest.get("title", ""),
+                "created_at": latest.get("created_at"),
+            }
+
+        admins_tracked = len(self._state.admins)
+
+        latest_activity_display: Optional[str] = None
+        latest_activity_dt: Optional[datetime] = None
+        for profile in self._state.xp_profiles.values():
+            chats = profile.get("chats", []) or []
+            if chat_key not in chats:
+                continue
+            iso_value = profile.get("updated_at_iso")
+            if not iso_value:
+                continue
+            try:
+                candidate = datetime.fromisoformat(str(iso_value))
+            except ValueError:
+                continue
+            if latest_activity_dt is None or candidate > latest_activity_dt:
+                latest_activity_dt = candidate
+                latest_activity_display = format_timestamp(candidate)
+
+        if latest_activity_display is None:
+            for profile in self._state.xp_profiles.values():
+                chats = profile.get("chats", []) or []
+                if chat_key not in chats:
+                    continue
+                candidate_display = profile.get("updated_at")
+                if candidate_display:
+                    latest_activity_display = str(candidate_display)
+                    break
+
+        return {
+            "members_tracked": members_tracked,
+            "total_xp": total_xp,
+            "top_member": top_member,
+            "cup_count": cup_count,
+            "recent_cup": recent_cup,
+            "admins_tracked": admins_tracked,
+            "last_activity": latest_activity_display,
+        }
 
     def get_global_xp_top(self, limit: int) -> List[tuple[str, int]]:
         """Aggregate XP across all chats and return top N users (by total XP)."""

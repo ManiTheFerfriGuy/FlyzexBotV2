@@ -15,6 +15,16 @@ def group_admin_panel_keyboard(texts: TextPack | None = None) -> InlineKeyboardM
         [
             [
                 InlineKeyboardButton(
+                    text=f"ℹ️ {text_pack.group_panel_help_button}",
+                    callback_data="group_panel:help",
+                ),
+                InlineKeyboardButton(
+                    text=f"🔄 {text_pack.group_panel_refresh_button}",
+                    callback_data="group_panel:refresh",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
                     text=f"🚫 {text_pack.group_panel_ban_button}",
                     callback_data="group_panel:ban",
                 ),

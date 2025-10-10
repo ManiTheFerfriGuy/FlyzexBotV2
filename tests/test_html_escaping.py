@@ -61,6 +61,12 @@ class GroupStorageStub:
             }
         ]
 
+    def get_group_snapshot(self, chat_id: int) -> dict[str, object]:
+        return {}
+
+    def get_user_xp(self, chat_id: int, user_id: int) -> int | None:
+        return None
+
 
 @pytest.mark.anyio("asyncio")
 async def test_dm_application_rendering_escapes_html() -> None:

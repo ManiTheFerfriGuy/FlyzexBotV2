@@ -26,6 +26,8 @@ FlyzexBot is a Telegram bot with a glassmorphism-inspired interface that helps g
 - Ignores helper bot messages to prevent unfair XP gain.
 - Trophy (cups) leaderboard with admin-controlled cup creation.
 - Members can view, but not modify, leaderboards.
+- `/help` provides an in-chat cheat sheet and `/myxp` shows personal progress.
+- Glass `/panel` dashboard summarises group stats with quick moderation buttons.
 
 ### Security & Reliability
 - Persistent JSON storage with optional SQLite backups.

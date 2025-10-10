@@ -43,6 +43,8 @@ class GroupHandlers:
     def build_handlers(self) -> list:
         return [
             MessageHandler(filters.TEXT & filters.ChatType.GROUPS, self.track_activity),
+            CommandHandler("help", self.command_help, filters=filters.ChatType.GROUPS),
+            CommandHandler("myxp", self.command_my_xp, filters=filters.ChatType.GROUPS),
             CommandHandler("xp", self.show_xp_leaderboard, filters=filters.ChatType.GROUPS),
             CommandHandler("cups", self.show_cup_leaderboard, filters=filters.ChatType.GROUPS),
             CommandHandler("add_cup", self.add_cup, filters=filters.ChatType.GROUPS),
@@ -158,6 +160,47 @@ class GroupHandlers:
     async def command_demote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await self._handle_admin_toggle(update, context, promote=False)
 
+    async def command_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        chat = update.effective_chat
+        actor = update.effective_user
+        message = update.effective_message
+        if chat is None or actor is None or message is None:
+            return
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        include_admin = False
+        try:
+            include_admin = await self._is_admin(context, chat.id, actor.id)
+        except Exception:
+            include_admin = False
+        help_text = self._build_help_text(texts, include_admin=include_admin)
+        await message.reply_text(
+            help_text,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+        await self.analytics.record("group.help_requested")
+
+    async def command_my_xp(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        chat = update.effective_chat
+        actor = update.effective_user
+        message = update.effective_message
+        if chat is None or actor is None or message is None:
+            return
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        xp_value = self.storage.get_user_xp(chat.id, actor.id)
+        if xp_value is None:
+            await message.reply_text(texts.group_myxp_no_data)
+            await self.analytics.record("group.my_xp_requested")
+            return
+        display = escape(
+            getattr(actor, "full_name", None)
+            or getattr(actor, "username", None)
+            or str(actor.id)
+        )
+        response = texts.group_myxp_response.format(full_name=display, xp=xp_value)
+        await message.reply_text(response, parse_mode=ParseMode.HTML)
+        await self.analytics.record("group.my_xp_requested")
+
     async def show_panel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat = update.effective_chat
         actor = update.effective_user
@@ -169,10 +212,13 @@ class GroupHandlers:
             await message.reply_text(texts.dm_admin_only)
             return
 
+        panel_text, markup = self._compose_group_panel(chat, texts)
         await message.reply_text(
-            texts.group_panel_intro,
-            reply_markup=group_admin_panel_keyboard(texts),
+            panel_text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=markup,
         )
+        await self.analytics.record("group.panel_opened")
 
     async def handle_panel_action(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query
@@ -195,6 +241,35 @@ class GroupHandlers:
                     await message.edit_text(texts.group_panel_closed)
                 except Exception:
                     await message.reply_text(texts.group_panel_closed)
+            return
+
+        if action == "refresh":
+            if message:
+                panel_text, markup = self._compose_group_panel(chat, texts)
+                try:
+                    await message.edit_text(
+                        panel_text,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=markup,
+                    )
+                except Exception:
+                    await message.reply_text(
+                        panel_text,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=markup,
+                    )
+            await self.analytics.record("group.panel_refreshed")
+            return
+
+        if action == "help":
+            help_text = self._build_help_text(texts, include_admin=True)
+            if message:
+                await message.reply_text(
+                    help_text,
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                )
+            await self.analytics.record("group.help_requested")
             return
 
         if action in {"ban", "mute", "add_xp"}:
@@ -301,6 +376,98 @@ class GroupHandlers:
             text, mode, markup = self._compose_cup_leaderboard(chat_id, texts)
             await self.analytics.record("group.cup_leaderboard_refreshed")
         await message.edit_text(text, parse_mode=mode, reply_markup=markup)
+
+    def _build_help_text(self, texts: TextPack, *, include_admin: bool) -> str:
+        lines: List[str] = [texts.group_help_intro, "", texts.group_help_member_title]
+        member_commands = [
+            ("/help", texts.group_help_cmd_help),
+            ("/myxp", texts.group_help_cmd_myxp),
+            ("/xp", texts.group_help_cmd_xp),
+            ("/cups", texts.group_help_cmd_cups),
+        ]
+        for command, description in member_commands:
+            lines.append(f"<b>{command}</b> — {description}")
+
+        if include_admin:
+            lines.extend(["", texts.group_help_admin_title, texts.group_help_admin_hint])
+            admin_commands = [
+                ("/panel", texts.group_help_cmd_panel),
+                ("/add_cup", texts.group_help_cmd_add_cup),
+                ("/addxp", texts.group_help_cmd_addxp),
+                ("/promote", texts.group_help_cmd_promote),
+                ("/demote", texts.group_help_cmd_demote),
+            ]
+            for command, description in admin_commands:
+                lines.append(f"<b>{command}</b> — {description}")
+
+        lines.extend(["", texts.group_help_footer])
+        return "\n".join(lines).strip()
+
+    def _compose_group_panel(self, chat, texts: TextPack) -> Tuple[str, InlineKeyboardMarkup]:
+        snapshot = self.storage.get_group_snapshot(getattr(chat, "id", 0)) or {}
+        chat_title_raw = (
+            getattr(chat, "title", None)
+            or getattr(chat, "full_name", None)
+            or getattr(chat, "username", None)
+            or texts.group_panel_unknown_chat
+        )
+        chat_title = escape(str(chat_title_raw))
+
+        lines: List[str] = [
+            texts.group_panel_intro.format(chat_title=chat_title),
+            "",
+            texts.group_panel_overview_title,
+        ]
+
+        metrics: List[str] = [
+            texts.group_panel_metric_tracked.format(
+                members=int(snapshot.get("members_tracked", 0))
+            ),
+            texts.group_panel_metric_total_xp.format(
+                total_xp=int(snapshot.get("total_xp", 0))
+            ),
+        ]
+
+        top_member = snapshot.get("top_member")
+        if isinstance(top_member, dict) and top_member.get("display"):
+            metrics.append(
+                texts.group_panel_metric_top_member.format(
+                    name=escape(str(top_member.get("display"))),
+                    xp=int(top_member.get("xp", 0)),
+                )
+            )
+        else:
+            metrics.append(texts.group_panel_metric_top_member_empty)
+
+        metrics.append(
+            texts.group_panel_metric_cups.format(
+                count=int(snapshot.get("cup_count", 0))
+            )
+        )
+        metrics.append(
+            texts.group_panel_metric_admins.format(
+                count=int(snapshot.get("admins_tracked", 0))
+            )
+        )
+
+        recent_cup = snapshot.get("recent_cup")
+        if isinstance(recent_cup, dict) and recent_cup.get("title"):
+            metrics.append(
+                texts.group_panel_recent_cup.format(
+                    title=escape(str(recent_cup.get("title"))),
+                    created_at=recent_cup.get("created_at") or "—",
+                )
+            )
+
+        last_activity = snapshot.get("last_activity")
+        if last_activity:
+            metrics.append(texts.group_panel_last_activity.format(timestamp=last_activity))
+
+        lines.append("\n".join(metrics))
+        lines.extend(["", texts.group_panel_actions_hint, texts.group_panel_help_hint])
+        text = "\n".join(lines)
+        markup = group_admin_panel_keyboard(texts)
+        return (text, markup)
 
     async def _handle_admin_toggle(
         self,
