@@ -36,18 +36,26 @@ This short guide walks you through deploying FlyzexBot on a shared host that use
 ## 4. Configure the Bot
 1. Duplicate `config/settings.example.yaml` as `config/settings.yaml` in the same folder.
 2. Edit `config/settings.yaml` and set the storage path and other options to match your hosting setup.
-3. In the cPanel Python App page, add the following **Environment Variables** (click **Add Variable** for each):
+3. In the cPanel Python App page, add the following **Environment Variables** (click **Add Variable** for each). These values are
+   used by Passenger-managed processes and serve as a record of the secrets for your app:
    - `BOT_TOKEN` → your Telegram bot token
    - `ADMIN_API_KEY` → secret key for the admin web routes (any strong string)
+4. (Important) When you launch the bot manually from a shell, cPanel does **not** inject the variables defined in the UI. Keep
+   the same values handy—you will export them in the next step before running the bot.
 
 ## 5. Start FlyzexBot
 1. In the cPanel Terminal, make sure the virtual environment is active (`source .../bin/activate`).
-2. Run the bot:
+2. Export the required environment variables so the bot can read them (reusing the values from step 4):
+   ```bash
+   export BOT_TOKEN="<your Telegram bot token>"
+   export ADMIN_API_KEY="<same admin key as in step 4>"
+   ```
+3. Run the bot:
    ```bash
    cd /home/<cpanel-user>/flyzexbot
    python bot.py
    ```
-3. Leave the terminal open so the bot keeps running. For long-running sessions, consider `tmux`, `screen`, or a background process manager supported by your host.
+4. Leave the terminal open so the bot keeps running. For long-running sessions, consider `tmux`, `screen`, or a background process manager supported by your host.
 
 ## 6. (Optional) Run the Web Dashboard
 1. The FastAPI admin panel lives in `webapp/`.
