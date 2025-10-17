@@ -1,67 +1,91 @@
-# FlyzexBot cPanel Setup Guide
+# FlyzexBot cPanel Deployment Guide
 
-This short guide walks you through deploying FlyzexBot on a shared host that uses **cPanel**. Follow the steps in order and you will have the Telegram bot (and optional FastAPI web panel) running in your hosting environment.
+This guide walks you through preparing, configuring, and running FlyzexBot on shared hosting that uses **cPanel**. Every section builds on the previous one, so follow the steps in order and keep cPanel open in another browser tab while you work.
 
 ---
 
-## 1. Prepare the Project Files
-1. Download the project archive from GitHub or clone it locally.
-2. In cPanel, open **File Manager** and upload the project into the folder you want to run it from (for example: `~/flyzexbot`).
-3. Make sure the uploaded tree contains:
+## 0. Prerequisites
+- **Hosting access:** A cPanel account with SSH or Terminal access and permission to create Python applications.
+- **Telegram bot token:** Create one via [@BotFather](https://t.me/botfather) and keep the token handy.
+- **Admin API key:** Generate a strong random string (for example using a password manager) that will protect the admin routes.
+- **Basic familiarity with cPanel:** You should know how to open File Manager, Terminal, and the **Setup Python App** feature.
+- **Recommended directory:** The guide assumes everything will live in `/home/<cpanel-user>/flyzexbot`. If you use a different path, update the commands accordingly.
+
+## 1. Upload the Project
+1. Download the latest FlyzexBot release or clone the repository locally.
+2. In cPanel, open **File Manager** and upload (or drag-and-drop) the project folder into your desired location.
+3. Verify that the uploaded tree contains at minimum:
    - `bot.py`
-   - the `flyzexbot/` package
-   - the `webapp/` folder (for the optional admin panel)
-   - the `config/` folder with `settings.example.yaml`
+   - the `flyzexbot/` package directory
+   - the `webapp/` directory (only required if you will use the admin dashboard)
+   - the `config/` directory with `settings.example.yaml`
    - `requirements.txt`
+4. If you uploaded a `.zip`, right-click it in File Manager and choose **Extract** so the files are available.
 
-## 2. Create a Python Application in cPanel
-1. Open **Setup Python App** in cPanel.
-2. Click **Create Application** and choose:
-   - Python version **3.10** or newer.
-   - Application root pointing to the folder where you uploaded the project (e.g. `~/flyzexbot`).
-   - Leave the startup file and entry point empty (the bot is started manually).
-3. After the app is created, copy the **Virtual Environment Path** displayed at the top of the page.
+## 2. Create the Python Application
+1. In cPanel, open **Setup Python App**.
+2. Click **Create Application** and fill in:
+   - **Python version:** `3.10` or later (higher versions are fine if your host provides them).
+   - **Application root:** The folder where you uploaded FlyzexBot (e.g. `flyzexbot`).
+   - **Application URL** and **Startup file** can stay empty (FlyzexBot is started manually).
+3. Save the application and note the **Application Root** and **Virtual Environment Path** shown at the top of the page; you will need both in later steps.
 
-## 3. Install Project Dependencies
-1. Click the **Run Pip Installer** button in the Python App page, or open the **Terminal** in cPanel.
-2. Activate the virtual environment:
+## 3. Install Dependencies
+1. Still in **Setup Python App**, click **Run Pip Installer**. If the button is not available, open **Terminal** from the cPanel dashboard.
+2. Activate the Python virtual environment (replace placeholders with the values from step 2):
    ```bash
-   source /home/<cpanel-user>/<venv-path>/bin/activate
+   source /home/<cpanel-user>/<virtualenv>/bin/activate
    ```
-3. Install the requirements inside the environment:
+3. Install the required packages:
    ```bash
+   pip install --upgrade pip
    pip install -r /home/<cpanel-user>/flyzexbot/requirements.txt
    ```
+4. If the installation fails because of missing build tools, contact your hosting provider—compiled dependencies cannot usually be installed on shared plans without their assistance.
 
-## 4. Configure the Bot
-1. Duplicate `config/settings.example.yaml` as `config/settings.yaml` in the same folder.
-2. Edit `config/settings.yaml` and set the storage path and other options to match your hosting setup.
-3. In the cPanel Python App page, add the following **Environment Variables** (click **Add Variable** for each):
-   - `BOT_TOKEN` → your Telegram bot token
-   - `ADMIN_API_KEY` → secret key for the admin web routes (any strong string)
+## 4. Configure FlyzexBot
+1. In **File Manager** (or via SSH), copy `config/settings.example.yaml` to `config/settings.yaml`.
+2. Edit `config/settings.yaml` and customize the values to match your hosting environment (storage paths, database settings, etc.).
+3. Return to **Setup Python App** and add the following **Environment Variables** by clicking **Add Variable** for each entry:
+   - `BOT_TOKEN` → paste the Telegram bot token from @BotFather.
+   - `ADMIN_API_KEY` → paste the secret string you created earlier.
+4. If you plan to use additional optional settings (like webhooks or custom storage paths), add the relevant variables now so they are available every time the application starts.
 
-## 5. Start FlyzexBot
-1. In the cPanel Terminal, make sure the virtual environment is active (`source .../bin/activate`).
-2. Run the bot:
+## 5. Start the Telegram Bot
+1. Open **Terminal** in cPanel or connect over SSH.
+2. Activate the virtual environment:
+   ```bash
+   source /home/<cpanel-user>/<virtualenv>/bin/activate
+   ```
+3. Move into the application directory and start the bot:
    ```bash
    cd /home/<cpanel-user>/flyzexbot
    python bot.py
    ```
-3. Leave the terminal open so the bot keeps running. For long-running sessions, consider `tmux`, `screen`, or a background process manager supported by your host.
+4. Keep the session open so FlyzexBot keeps running. If you close the terminal, the process stops. To keep it alive in the background, use tools such as `tmux`, `screen`, or a process manager supported by your host (for example, cPanel’s **Application Manager** or `nohup`).
+5. Test the bot from Telegram: send `/start` to your bot and confirm it replies.
 
-## 6. (Optional) Run the Web Dashboard
-1. The FastAPI admin panel lives in `webapp/`.
-2. With the same virtual environment activated, start the server:
+## 6. (Optional) Launch the Web Dashboard
+1. With the virtual environment still active, run:
    ```bash
    uvicorn webapp.server:app --host 0.0.0.0 --port 8080
    ```
-3. Use cPanel **Application Manager** or a reverse proxy (e.g. via `.htaccess`) to expose the chosen port if your hosting plan allows it.
+2. If your hosting plan allows binding to custom ports, expose the port via cPanel’s **Application Manager**, a reverse proxy rule, or `.htaccess` configuration. Without that step, the dashboard will not be reachable from the internet.
+3. Visit `https://<your-domain>:8080/docs` (or the mapped URL) to confirm that the FastAPI docs load and require the `ADMIN_API_KEY` for protected endpoints.
 
-## 7. Keep the App Updated
-1. To update the bot, upload the new files (or pull changes via `git`) into the same directory.
-2. Re-run `pip install -r requirements.txt` if dependencies changed.
-3. Restart the bot process so the new code loads.
+## 7. Logging and Maintenance
+1. Review runtime logs in the terminal session or via cPanel’s **Application Manager** logs to diagnose issues.
+2. To update FlyzexBot, upload the new files (or run `git pull` if you cloned the repository) into the same folder.
+3. Re-run `pip install -r requirements.txt` after an update in case new dependencies were added.
+4. Restart the bot (and the web dashboard if applicable) so the updated code is loaded.
+5. Periodically rotate the `ADMIN_API_KEY` and ensure your Telegram bot token remains private. Reboot the application after rotating credentials so the new values take effect.
+
+## 8. Troubleshooting Tips
+- **Import errors:** Confirm the virtual environment is activated and dependencies are installed in that environment.
+- **Permission denied when writing files:** Ensure the paths configured in `config/settings.yaml` point to directories your cPanel user can write to (inside your home directory).
+- **Bot stops after closing the browser:** Use `tmux`, `screen`, or a background service; closing a standard terminal session terminates the process.
+- **Cannot reach the web dashboard:** Verify that your hosting plan permits long-running web processes and that any firewall or proxy rules forward traffic to the `uvicorn` port you selected.
 
 ---
 
-Need more help? Check the detailed documentation in `README.en.md` or reach out to your hosting provider for assistance with cPanel-specific tools.
+For more background on FlyzexBot features, read the full documentation in `README.en.md`. If you run into cPanel-specific issues, contact your hosting provider’s support team—they control which Python versions, ports, and background processes are available on your plan.
