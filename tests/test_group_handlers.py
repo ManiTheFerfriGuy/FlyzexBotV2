@@ -41,6 +41,11 @@ class DummyContext:
     def __init__(self, args: list[str]) -> None:
         self.args = args
         self.chat_data: dict[str, object] = {}
+        self.user_data: dict[str, object] = {}
+        self.bot = SimpleNamespace(
+            send_message=AsyncMock(),
+            get_chat_member=AsyncMock(),
+        )
 
 
 def test_add_cup_accepts_single_argument_string() -> None:
@@ -197,3 +202,58 @@ def test_compose_group_panel_menu_includes_section_text() -> None:
 
     assert PERSIAN_TEXTS.group_panel_menu_xp_title in text
     assert markup.inline_keyboard[0][0].callback_data == "group_panel:action:xp_members"
+
+
+def test_keyword_xp_triggers_dm_and_summary() -> None:
+    storage = SimpleNamespace(
+        add_xp=AsyncMock(return_value=12),
+        get_user_xp=Mock(return_value=12),
+        get_xp_leaderboard=Mock(return_value=[("456", 30), ("789", 20)]),
+        get_user_xp_rank=Mock(return_value=(1, 5)),
+        get_cups=Mock(return_value=[]),
+    )
+    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=5, cups_limit=5)
+
+    message = DummyMessage("XP")
+    chat = DummyChat()
+    user = DummyUser()
+    update = SimpleNamespace(effective_message=message, effective_chat=chat, effective_user=user)
+    context = DummyContext([])
+    context.bot.get_chat_member.return_value = SimpleNamespace(
+        user=SimpleNamespace(full_name="Leader"),
+    )
+
+    asyncio.run(handler.track_activity(update, context))
+
+    assert context.bot.send_message.await_count == 1
+    assert message.replies, "Expected summary reply"
+    progress = calculate_level_progress(12)
+    expected = PERSIAN_TEXTS.group_personal_panel_dm_prompt.format(
+        xp=12,
+        level=progress.level,
+        rank="#1",
+        trophies=0,
+    )
+    assert expected in message.replies[0]
+
+
+def test_keyword_invalid_shows_fallback() -> None:
+    storage = SimpleNamespace(
+        add_xp=AsyncMock(return_value=10),
+        get_user_xp=Mock(return_value=10),
+        get_xp_leaderboard=Mock(return_value=[]),
+        get_user_xp_rank=Mock(return_value=(None, 0)),
+        get_cups=Mock(return_value=[]),
+    )
+    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=5, cups_limit=5)
+
+    message = DummyMessage("XP stats")
+    chat = DummyChat()
+    user = DummyUser()
+    update = SimpleNamespace(effective_message=message, effective_chat=chat, effective_user=user)
+    context = DummyContext([])
+
+    asyncio.run(handler.track_activity(update, context))
+
+    assert message.replies == [PERSIAN_TEXTS.group_keyword_fallback]
+    assert context.bot.send_message.await_count == 0

@@ -5,7 +5,8 @@ import logging
 import time
 from typing import Any, Dict, List, Sequence, Tuple
 
-from telegram import ChatMember, ChatPermissions, InlineKeyboardMarkup, Update
+from telegram import (ChatMember, ChatPermissions, InlineKeyboardButton,
+                      InlineKeyboardMarkup, Update)
 from telegram.constants import ParseMode
 from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
                           MessageHandler, filters)
@@ -40,6 +41,7 @@ class GroupHandlers:
         self.analytics = analytics or NullAnalytics()
         self.xp_notification_cooldown = max(0, xp_notification_cooldown)
         self._xp_notifications: Dict[Tuple[int, int], float] = {}
+        self.personal_panel_cooldown = 30.0
 
     def build_handlers(self) -> list:
         return [
@@ -56,6 +58,7 @@ class GroupHandlers:
             CommandHandler("panel", self.show_panel, filters=filters.ChatType.GROUPS),
             CallbackQueryHandler(self.handle_leaderboard_refresh, pattern=r"^leaderboard:"),
             CallbackQueryHandler(self.handle_panel_action, pattern=r"^group_panel:"),
+            CallbackQueryHandler(self.handle_personal_panel_action, pattern=r"^personal_panel:"),
         ]
 
     async def track_activity(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -69,6 +72,7 @@ class GroupHandlers:
         if message.text and message.text.startswith("/"):
             return
         texts = self._get_texts(context, getattr(update.effective_user, "language_code", None))
+        new_score: int | None = None
         try:
             async with self.analytics.track_time("group.track_activity"):
                 new_score = await self.storage.add_xp(
@@ -105,6 +109,11 @@ class GroupHandlers:
                         xp=new_score,
                     )
                 )
+        await self._maybe_handle_keyword_interaction(
+            update,
+            context,
+            current_total=new_score,
+        )
         await self.analytics.record("group.activity_tracked")
 
     async def command_add_xp(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -736,6 +745,72 @@ class GroupHandlers:
             )
         )
 
+    async def handle_personal_panel_action(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        if not query or not query.data:
+            return
+        user = query.from_user
+        message = query.message
+        if user is None or message is None:
+            await query.answer()
+            return
+
+        parts = query.data.split(":", 3)
+        if len(parts) < 3:
+            await query.answer()
+            return
+
+        _, action, chat_id_raw, *rest = parts
+        try:
+            chat_id = int(chat_id_raw)
+        except ValueError:
+            await query.answer()
+            return
+
+        texts = self._get_texts(context, getattr(user, "language_code", None))
+        await query.answer()
+
+        user_state = self._ensure_personal_panel_state(context)
+        chat_title = self._resolve_personal_panel_chat_title(context, chat_id)
+
+        if action == "refresh":
+            view = rest[0] if rest else user_state.get("last_view", "profile")
+        elif action == "view":
+            view = rest[0] if rest else "profile"
+            user_state["last_view"] = view
+        else:
+            return
+
+        try:
+            panel_text, markup = await self._compose_personal_panel(
+                context,
+                chat_id,
+                user,
+                texts,
+                chat_title=chat_title,
+                view=view,
+            )
+        except Exception as exc:
+            LOGGER.error("Failed to refresh personal panel: %s", exc)
+            return
+
+        user_state["last_view"] = view
+
+        try:
+            await message.edit_text(
+                panel_text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=markup,
+            )
+        except Exception:
+            await message.reply_text(
+                panel_text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=markup,
+            )
+
     async def _maybe_handle_panel_response(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> bool:
@@ -839,6 +914,148 @@ class GroupHandlers:
         return False
 
 
+    async def _maybe_handle_keyword_interaction(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        *,
+        current_total: int | None = None,
+    ) -> bool:
+        message = update.effective_message
+        chat = update.effective_chat
+        actor = update.effective_user
+        if message is None or chat is None or actor is None:
+            return False
+        if not getattr(message, "text", None):
+            return False
+
+        texts = self._get_texts(context, getattr(actor, "language_code", None))
+        keyword = self._normalise_keyword(message.text)
+        if not keyword:
+            return False
+
+        keyword_actions = {
+            "xp": "profile",
+            "my xp": "profile",
+            "current xp": "profile",
+            "level": "profile",
+            "lvl": "profile",
+            "my level": "profile",
+            "profile": "profile",
+            "my profile": "profile",
+            "rank": "profile",
+            "my rank": "profile",
+            "leaderboard": "leaderboard",
+            "trophies": "profile",
+            "cups": "profile",
+            "moderation panel": "admin_panel",
+            "admin panel": "admin_panel",
+        }
+
+        action = keyword_actions.get(keyword)
+        if action is None:
+            prefixes = (
+                "xp",
+                "level",
+                "rank",
+                "profile",
+                "leaderboard",
+                "trophies",
+                "cups",
+                "moderation panel",
+                "admin panel",
+            )
+            if any(keyword.startswith(prefix) for prefix in prefixes):
+                await message.reply_text(texts.group_keyword_fallback)
+                await self.analytics.record("group.keyword_fallback")
+                return True
+            return False
+
+        if action == "admin_panel":
+            await self.show_panel(update, context)
+            return True
+
+        bot = getattr(context, "bot", None)
+        if bot is None or not hasattr(bot, "send_message"):
+            return False
+
+        user_state = self._ensure_personal_panel_state(context)
+        now = time.monotonic()
+        last_sent = float(user_state.get("last_sent", 0.0))
+        if now - last_sent < self.personal_panel_cooldown:
+            await message.reply_text(texts.group_personal_panel_recently_sent)
+            if action == "leaderboard":
+                await self.show_xp_leaderboard(update, context)
+            return True
+
+        xp_total = current_total
+        if xp_total is None:
+            xp_total = self.storage.get_user_xp(chat.id, actor.id)
+
+        rank: int | None = None
+        total_members = 0
+        rank_getter = getattr(self.storage, "get_user_xp_rank", None)
+        if callable(rank_getter):
+            try:
+                rank, total_members = rank_getter(chat.id, actor.id)
+            except Exception as exc:
+                LOGGER.error("Failed to resolve rank for %s: %s", actor.id, exc)
+
+        trophies = self._collect_user_trophies(chat.id, actor)
+        view = "leaderboard" if action == "leaderboard" else user_state.get("last_view", "profile")
+
+        sent = await self._send_personal_panel(
+            context,
+            chat,
+            actor,
+            texts,
+            view=view,
+            current_total=xp_total,
+        )
+        if not sent:
+            await message.reply_text(texts.group_personal_panel_dm_error)
+            return True
+
+        user_state["last_sent"] = now
+        user_state["last_view"] = view
+
+        display_total = xp_total if xp_total is not None else 0
+        progress = calculate_level_progress(display_total)
+        rank_display = f"#{rank}" if rank else "—"
+        trophies_count = len(trophies)
+
+        if xp_total is None:
+            summary = texts.group_personal_panel_dm_prompt_no_data
+            summary_kwargs: Dict[str, object] | None = None
+        else:
+            summary = texts.group_personal_panel_dm_prompt
+            summary_kwargs = {
+                "xp": display_total,
+                "level": progress.level,
+                "rank": rank_display,
+                "trophies": trophies_count,
+            }
+
+        if summary_kwargs:
+            await message.reply_text(summary.format(**summary_kwargs), parse_mode=ParseMode.HTML)
+        else:
+            await message.reply_text(summary)
+
+        if action == "leaderboard":
+            await self.show_xp_leaderboard(update, context)
+        elif keyword in {"trophies", "cups"}:
+            if trophies:
+                lines = [texts.group_personal_panel_trophies_heading]
+                for entry in trophies:
+                    lines.append(f"• {entry}")
+                await message.reply_text("\n".join(lines))
+            else:
+                await message.reply_text(texts.group_personal_panel_trophies_empty)
+
+        await self.analytics.record("group.personal_panel_requested")
+        return True
+
+
     async def _is_admin(self, context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int) -> bool:
         try:
             member: ChatMember = await context.bot.get_chat_member(chat_id, user_id)
@@ -915,6 +1132,120 @@ class GroupHandlers:
         markup = leaderboard_refresh_keyboard("xp", chat_id, texts)
         return (text, ParseMode.HTML, markup)
 
+    async def _compose_personal_panel(
+        self,
+        context: ContextTypes.DEFAULT_TYPE,
+        chat_id: int,
+        user,
+        texts: TextPack,
+        *,
+        chat_title: str,
+        view: str = "profile",
+        current_total: int | None = None,
+    ) -> Tuple[str, InlineKeyboardMarkup]:
+        safe_title = escape(str(chat_title))
+        xp_total = current_total
+        if xp_total is None:
+            xp_total = self.storage.get_user_xp(chat_id, getattr(user, "id", 0))
+        display_total = xp_total if xp_total is not None else 0
+        progress = calculate_level_progress(display_total)
+        span = max(1, progress.next_threshold - progress.current_threshold)
+        progress_label = texts.group_personal_panel_progress_label.format(
+            current=progress.xp_into_level,
+            target=span,
+        )
+        progress_bar = self._render_progress_bar(progress)
+
+        rank: int | None = None
+        total_members = 0
+        rank_getter = getattr(self.storage, "get_user_xp_rank", None)
+        if callable(rank_getter):
+            try:
+                rank, total_members = rank_getter(chat_id, getattr(user, "id", 0))
+            except Exception as exc:
+                LOGGER.error("Failed to resolve rank for %s: %s", getattr(user, "id", 0), exc)
+
+        rank_display = f"#{rank}" if rank else "—"
+
+        trophies = self._collect_user_trophies(chat_id, user)
+
+        leaderboard_limit = self.xp_limit if view == "leaderboard" else min(self.xp_limit, 5)
+        leaderboard_limit = max(1, leaderboard_limit)
+        leaderboard_raw = self.storage.get_xp_leaderboard(chat_id, leaderboard_limit)
+        resolved = await self._resolve_leaderboard_names(context, chat_id, leaderboard_raw)
+
+        lines: List[str] = [texts.group_personal_panel_title.format(chat_title=safe_title)]
+        lines.append("")
+        lines.append(texts.group_personal_panel_profile_heading)
+        if xp_total is None:
+            lines.append(texts.group_personal_panel_no_data)
+        else:
+            lines.append(
+                texts.group_personal_panel_profile_line.format(
+                    xp=display_total,
+                    level=progress.level,
+                )
+            )
+            lines.append(
+                texts.group_personal_panel_rank_line.format(
+                    rank=rank_display,
+                    total=max(total_members, 1),
+                )
+            )
+            lines.append(progress_label)
+            lines.append(progress_bar)
+
+        lines.append("")
+        lines.append(texts.group_personal_panel_trophies_heading)
+        if trophies:
+            for entry in trophies[:5]:
+                lines.append(f"• {escape(str(entry))}")
+        else:
+            lines.append(texts.group_personal_panel_trophies_empty)
+
+        lines.append("")
+        lines.append(texts.group_personal_panel_leaderboard_heading)
+        if leaderboard_raw:
+            for index, ((candidate_id, xp), (display_name, _)) in enumerate(
+                zip(leaderboard_raw, resolved),
+                start=1,
+            ):
+                safe_name = escape(str(display_name))
+                member_progress = calculate_level_progress(xp)
+                marker = "⭐️ " if str(candidate_id) == str(getattr(user, "id", "")) else ""
+                lines.append(
+                    texts.group_personal_panel_leaderboard_entry.format(
+                        marker=marker,
+                        index=index,
+                        name=safe_name,
+                        xp=xp,
+                        level=member_progress.level,
+                    )
+                )
+        else:
+            lines.append(texts.group_no_data)
+
+        buttons: List[List[InlineKeyboardButton]] = [
+            [
+                InlineKeyboardButton(
+                    text=f"👤 {texts.group_personal_panel_profile_button}",
+                    callback_data=f"personal_panel:view:{chat_id}:profile",
+                ),
+                InlineKeyboardButton(
+                    text=f"📊 {texts.group_personal_panel_leaderboard_button}",
+                    callback_data=f"personal_panel:view:{chat_id}:leaderboard",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"🔄 {texts.group_personal_panel_refresh_button}",
+                    callback_data=f"personal_panel:refresh:{chat_id}:{view}",
+                )
+            ],
+        ]
+
+        return ("\n".join(lines), InlineKeyboardMarkup(buttons))
+
     def _compose_cup_leaderboard(
         self,
         chat_id: int,
@@ -934,6 +1265,133 @@ class GroupHandlers:
         text = "\n\n".join(lines)
         markup = leaderboard_refresh_keyboard("cups", chat_id, texts)
         return (text, ParseMode.HTML, markup)
+
+    def _ensure_personal_panel_state(self, context: ContextTypes.DEFAULT_TYPE) -> Dict[str, object]:
+        user_data = getattr(context, "user_data", None)
+        if not isinstance(user_data, dict):
+            setattr(context, "user_data", {})
+            user_data = getattr(context, "user_data", {})
+        state = user_data.setdefault("personal_panel_state", {})
+        if not isinstance(state, dict):
+            state = {}
+            user_data["personal_panel_state"] = state
+        chats = state.get("chats")
+        if not isinstance(chats, dict):
+            state["chats"] = {}
+        return state
+
+    def _resolve_personal_panel_chat_title(
+        self, context: ContextTypes.DEFAULT_TYPE, chat_id: int
+    ) -> str:
+        state = self._ensure_personal_panel_state(context)
+        chats = state.get("chats")
+        if isinstance(chats, dict) and chat_id in chats:
+            stored = chats.get(chat_id)
+            if stored:
+                return str(stored)
+        return str(chat_id)
+
+    async def _send_personal_panel(
+        self,
+        context: ContextTypes.DEFAULT_TYPE,
+        chat,
+        user,
+        texts: TextPack,
+        *,
+        view: str,
+        current_total: int | None,
+    ) -> bool:
+        bot = getattr(context, "bot", None)
+        if bot is None or not hasattr(bot, "send_message"):
+            return False
+
+        chat_title_raw = (
+            getattr(chat, "title", None)
+            or getattr(chat, "full_name", None)
+            or getattr(chat, "username", None)
+            or texts.group_panel_unknown_chat
+        )
+        chat_title = str(chat_title_raw)
+
+        state = self._ensure_personal_panel_state(context)
+        chats = state.get("chats")
+        if isinstance(chats, dict):
+            chats[chat.id] = chat_title
+        state["last_view"] = view
+
+        try:
+            panel_text, markup = await self._compose_personal_panel(
+                context,
+                chat.id,
+                user,
+                texts,
+                chat_title=chat_title,
+                view=view,
+                current_total=current_total,
+            )
+        except Exception as exc:
+            LOGGER.error("Failed to compose personal panel: %s", exc)
+            return False
+
+        try:
+            await bot.send_message(
+                chat_id=getattr(user, "id", 0),
+                text=panel_text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=markup,
+            )
+        except Exception as exc:
+            LOGGER.error(
+                "Failed to deliver personal panel to %s: %s",
+                getattr(user, "id", 0),
+                exc,
+            )
+            return False
+        return True
+
+    def _collect_user_trophies(self, chat_id: int, user) -> List[str]:
+        try:
+            cups = self.storage.get_cups(chat_id, self.cups_limit)
+        except Exception:
+            return []
+        if not cups:
+            return []
+        identifiers = {str(getattr(user, "id", "")).casefold()}
+        username = getattr(user, "username", None)
+        if username:
+            identifiers.add(str(username).lstrip("@").casefold())
+        full_name = getattr(user, "full_name", None)
+        if full_name:
+            identifiers.add(str(full_name).casefold())
+
+        trophies: List[str] = []
+        for cup in cups:
+            title = str(cup.get("title", ""))
+            podium = cup.get("podium", []) or []
+            for entry in podium:
+                entry_str = str(entry).strip()
+                normalised = entry_str.lstrip("@").casefold()
+                if normalised in identifiers:
+                    if title:
+                        trophies.append(f"{title} — {entry_str}")
+                    else:
+                        trophies.append(entry_str)
+                    break
+        return trophies
+
+    def _render_progress_bar(self, progress, width: int = 10) -> str:
+        span = max(1, progress.next_threshold - progress.current_threshold)
+        ratio = progress.xp_into_level / span if span else 0.0
+        ratio = max(0.0, min(1.0, ratio))
+        filled = int(round(ratio * width))
+        filled = max(0, min(width, filled))
+        return "▰" * filled + "▱" * (width - filled)
+
+    def _normalise_keyword(self, raw_text: str) -> str:
+        lowered = raw_text.casefold()
+        cleaned = lowered.replace("’", "'")
+        condensed = " ".join(cleaned.split())
+        return condensed.strip("!?.,:; ")
 
     def _resolve_target_from_message(self, message) -> object | None:
         reply = getattr(message, "reply_to_message", None)

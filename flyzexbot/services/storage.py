@@ -792,6 +792,24 @@ class Storage:
         except Exception:
             return None
 
+    def get_user_xp_rank(self, chat_id: int, user_id: int) -> tuple[Optional[int], int]:
+        chat_scores = self._state.xp.get(str(chat_id)) or {}
+        scored: List[tuple[str, int]] = []
+        for raw_id, raw_value in chat_scores.items():
+            try:
+                scored.append((str(raw_id), int(raw_value)))
+            except Exception:
+                continue
+        if not scored:
+            return (None, 0)
+        scored.sort(key=lambda item: item[1], reverse=True)
+        total = len(scored)
+        target_key = str(user_id)
+        for index, (candidate, _) in enumerate(scored, start=1):
+            if candidate == target_key:
+                return (index, total)
+        return (None, total)
+
     def get_xp_profile(self, user_id: int | str) -> Optional[Dict[str, Any]]:
         profile = self._state.xp_profiles.get(str(user_id))
         if profile is None:
