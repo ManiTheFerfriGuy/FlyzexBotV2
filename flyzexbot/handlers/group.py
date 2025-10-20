@@ -14,6 +14,7 @@ from ..localization import (AVAILABLE_LANGUAGE_CODES, PERSIAN_TEXTS, TextPack,
                             get_text_pack, normalize_language_code)
 from ..services.analytics import AnalyticsTracker, NullAnalytics
 from ..services.storage import Storage
+from ..services.xp import calculate_level_progress
 from ..ui.keyboards import (group_admin_panel_keyboard,
                             leaderboard_refresh_keyboard)
 
@@ -192,7 +193,13 @@ class GroupHandlers:
             or getattr(actor, "username", None)
             or str(actor.id)
         )
-        response = texts.group_myxp_response.format(full_name=display, xp=xp_value)
+        progress = calculate_level_progress(xp_value)
+        response = texts.group_myxp_response.format(
+            full_name=display,
+            xp=xp_value,
+            level=progress.level,
+            xp_to_next=progress.xp_to_next,
+        )
         await message.reply_text(response, parse_mode=ParseMode.HTML)
         await self.analytics.record("group.my_xp_requested")
 
@@ -503,6 +510,7 @@ class GroupHandlers:
                 texts.group_panel_metric_top_member.format(
                     name=escape(str(top_member.get("display"))),
                     xp=int(top_member.get("xp", 0)),
+                    level=int(top_member.get("level", 0)),
                 )
             )
         else:
@@ -604,11 +612,13 @@ class GroupHandlers:
         lines: List[str] = []
         for index, (display_name, xp) in enumerate(resolved, start=1):
             safe_name = escape(str(display_name))
+            progress = calculate_level_progress(xp)
             lines.append(
                 texts.group_panel_menu_xp_members_entry.format(
                     index=index,
                     name=safe_name,
                     xp=xp,
+                    level=progress.level,
                 )
             )
         members_block = "\n".join(lines)
@@ -897,7 +907,10 @@ class GroupHandlers:
         lines: List[str] = [texts.group_xp_leaderboard_title]
         for index, (display_name, xp) in enumerate(resolved, start=1):
             safe_name = escape(str(display_name))
-            lines.append(f"{index}. <b>{safe_name}</b> — <code>{xp}</code>")
+            progress = calculate_level_progress(xp)
+            lines.append(
+                f"{index}. <b>{safe_name}</b> — <code>{xp}</code> XP · Lv.{progress.level}"
+            )
         text = "\n".join(lines)
         markup = leaderboard_refresh_keyboard("xp", chat_id, texts)
         return (text, ParseMode.HTML, markup)

@@ -543,7 +543,7 @@
         return chip;
       };
 
-      const li = (rank, fullName, username, userId, value, label, avatarUrl) => {
+      const li = (rank, fullName, username, userId, value, label, avatarUrl, level = null) => {
         const item = document.createElement('li');
         item.className = 'leader';
         item.dataset.rank = rank;
@@ -599,6 +599,9 @@
         if (username) {
           const cleaned = `@${String(username).replace(/^@+/, '')}`;
           meta.appendChild(metaChip('👤', cleaned));
+        }
+        if (Number.isFinite(level)) {
+          meta.appendChild(metaChip('⬆️', `Lv.${level}`));
         }
         meta.appendChild(metaChip('🆔', `#${userId}`));
         identity.appendChild(meta);
@@ -886,7 +889,7 @@
               e.full_name = e.full_name || profile.full_name;
               e.username = e.username || profile.username;
             }
-            frag.appendChild(li(e.rank, e.full_name, e.username, e.user_id, e.xp, 'XP', avatarUrl));
+          frag.appendChild(li(e.rank, e.full_name, e.username, e.user_id, e.xp, 'XP', avatarUrl, e.level));
           }
           xpList.appendChild(frag);
         } catch (err) {

@@ -68,6 +68,7 @@ class XPEntryModel(BaseModel):
     username: Optional[str]
     full_name: Optional[str]
     xp: int
+    level: int
 
 
 class CupsEntryModel(BaseModel):

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, Mock
 
 from flyzexbot.handlers.group import GroupHandlers
 from flyzexbot.localization import PERSIAN_TEXTS
+from flyzexbot.services.xp import calculate_level_progress
 
 
 class DummyChat:
@@ -149,14 +150,21 @@ def test_command_myxp_reports_total() -> None:
     asyncio.run(handler.command_my_xp(update, context))
 
     assert message.replies, "Expected XP response"
-    assert "128" in message.replies[0]
+    progress = calculate_level_progress(128)
+    expected = PERSIAN_TEXTS.group_myxp_response.format(
+        full_name=user.full_name,
+        xp=128,
+        level=progress.level,
+        xp_to_next=progress.xp_to_next,
+    )
+    assert message.replies[0] == expected
 
 
 def test_show_panel_escapes_snapshot_content() -> None:
     snapshot = {
         "members_tracked": 3,
         "total_xp": 240,
-        "top_member": {"display": "Hero <One>", "xp": 120},
+        "top_member": {"display": "Hero <One>", "xp": 120, "level": 5},
         "cup_count": 2,
         "recent_cup": {"title": "Cup <Alpha>", "created_at": "2024/05/01"},
         "admins_tracked": 2,

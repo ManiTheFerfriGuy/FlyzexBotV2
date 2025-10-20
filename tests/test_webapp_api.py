@@ -211,8 +211,10 @@ def test_global_xp_top_persists_plain_json(monkeypatch: pytest.MonkeyPatch) -> N
         assert [entry["user_id"] for entry in data["leaderboard"]] == [555, 666]
         assert data["leaderboard"][0]["xp"] == 45
         assert data["leaderboard"][0]["full_name"] == "Alpha One"
+        assert data["leaderboard"][0]["level"] == 3
         assert data["leaderboard"][1]["xp"] == 25
         assert data["leaderboard"][1]["username"] == "beta"
+        assert data["leaderboard"][1]["level"] == 2
 
         plain_response = client.get("/api/leaderboard/xp/top?limit=3")
         assert plain_response.status_code == 200
