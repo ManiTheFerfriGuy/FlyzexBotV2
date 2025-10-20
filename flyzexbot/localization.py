@@ -211,6 +211,24 @@ class TextPack:
     group_help_footer: str
     group_myxp_response: str
     group_myxp_no_data: str
+    group_keyword_fallback: str
+    group_personal_panel_title: str
+    group_personal_panel_profile_heading: str
+    group_personal_panel_profile_line: str
+    group_personal_panel_rank_line: str
+    group_personal_panel_progress_label: str
+    group_personal_panel_trophies_heading: str
+    group_personal_panel_trophies_empty: str
+    group_personal_panel_leaderboard_heading: str
+    group_personal_panel_leaderboard_entry: str
+    group_personal_panel_no_data: str
+    group_personal_panel_profile_button: str
+    group_personal_panel_leaderboard_button: str
+    group_personal_panel_refresh_button: str
+    group_personal_panel_dm_prompt: str
+    group_personal_panel_dm_prompt_no_data: str
+    group_personal_panel_dm_error: str
+    group_personal_panel_recently_sent: str
     language_names: Dict[str, str]
 
 
@@ -495,6 +513,31 @@ PERSIAN_TEXTS = TextPack(
         "تا سطح بعدی فقط <b>{xp_to_next}</b> XP مونده."
     ),
     group_myxp_no_data="هنوز هیچ XP برای تو ثبت نشده.",
+    group_keyword_fallback=(
+        "درخواستت رو متوجه نشدم. می‌تونی بنویسی: XP، سطح، رتبه، نمایه، جام‌ها یا لیدربورد."
+    ),
+    group_personal_panel_title="📊 پیشرفت تو در {chat_title}",
+    group_personal_panel_profile_heading="<b>👤 نمایه شخصی</b>",
+    group_personal_panel_profile_line="امتیاز: <code>{xp}</code> · سطح {level}",
+    group_personal_panel_rank_line="رتبه در لیدربورد: {rank} از {total}",
+    group_personal_panel_progress_label="پیشرفت تا سطح بعدی: {current}/{target}",
+    group_personal_panel_trophies_heading="<b>🏆 جام‌های ثبت‌شده</b>",
+    group_personal_panel_trophies_empty="هنوز جامی برای تو ثبت نشده.",
+    group_personal_panel_leaderboard_heading="<b>📈 برترین اعضای گیلد</b>",
+    group_personal_panel_leaderboard_entry=(
+        "{marker}{index}. <b>{name}</b> — <code>{xp}</code> XP · سطح {level}"
+    ),
+    group_personal_panel_no_data="هنوز امتیازی برای این چت نداری.",
+    group_personal_panel_profile_button="نمایه",
+    group_personal_panel_leaderboard_button="لیدربورد",
+    group_personal_panel_refresh_button="به‌روزرسانی",
+    group_personal_panel_dm_prompt=(
+        "📬 جزئیات کامل رو توی پی‌وی برات فرستادم. XP: <code>{xp}</code> · "
+        "سطح {level} · رتبه {rank} · 🏆 {trophies}"
+    ),
+    group_personal_panel_dm_prompt_no_data="فعلاً هیچ امتیازی برات ندارم؛ بعد از کمی فعالیت دوباره امتحان کن.",
+    group_personal_panel_dm_error="برای ارسال جزئیات باید یک بار به ربات پیام خصوصی بدی.",
+    group_personal_panel_recently_sent="به‌تازگی آخرین وضعیتت رو فرستادم؛ همون پیام رو چک کن.",
     language_names={
         "fa": "فارسی",
         "en": "انگلیسی",
@@ -786,6 +829,31 @@ ENGLISH_TEXTS = TextPack(
         "Only <b>{xp_to_next}</b> XP left until the next level!"
     ),
     group_myxp_no_data="You don't have any XP in this chat yet.",
+    group_keyword_fallback=(
+        "I couldn't understand that request. Try: XP, level, rank, profile, trophies, or leaderboard."
+    ),
+    group_personal_panel_title="📊 Your progress in {chat_title}",
+    group_personal_panel_profile_heading="<b>👤 Personal profile</b>",
+    group_personal_panel_profile_line="XP: <code>{xp}</code> · Level {level}",
+    group_personal_panel_rank_line="Leaderboard rank: {rank} of {total}",
+    group_personal_panel_progress_label="Progress to next level: {current}/{target}",
+    group_personal_panel_trophies_heading="<b>🏆 Earned trophies</b>",
+    group_personal_panel_trophies_empty="No trophies recorded for you yet.",
+    group_personal_panel_leaderboard_heading="<b>📈 Guild leaders</b>",
+    group_personal_panel_leaderboard_entry=(
+        "{marker}{index}. <b>{name}</b> — <code>{xp}</code> XP · Lv.{level}"
+    ),
+    group_personal_panel_no_data="You don't have any XP logged in this chat yet.",
+    group_personal_panel_profile_button="Profile",
+    group_personal_panel_leaderboard_button="Leaderboard",
+    group_personal_panel_refresh_button="Refresh",
+    group_personal_panel_dm_prompt=(
+        "📬 I've sent the full details in DM. XP: <code>{xp}</code> · "
+        "Level {level} · Rank {rank} · 🏆 {trophies}"
+    ),
+    group_personal_panel_dm_prompt_no_data="I don't have any XP for you yet—talk a bit more and try again.",
+    group_personal_panel_dm_error="I couldn't DM you. Please start a private chat with the bot first.",
+    group_personal_panel_recently_sent="I just shared your latest stats—check the DM.",
     language_names={
         "fa": "Persian",
         "en": "English",
