@@ -950,6 +950,26 @@ class GroupHandlers:
             "cups": "profile",
             "moderation panel": "admin_panel",
             "admin panel": "admin_panel",
+            "ایکس پی": "profile",
+            "ایکس‌پی": "profile",
+            "ایکس پی من": "profile",
+            "ایکس‌پی من": "profile",
+            "سطح": "profile",
+            "سطح من": "profile",
+            "رتبه": "profile",
+            "رتبه من": "profile",
+            "نمایه": "profile",
+            "نمایه من": "profile",
+            "پروفایل": "profile",
+            "پروفایل من": "profile",
+            "جام": "profile",
+            "جام ها": "profile",
+            "جام‌ها": "profile",
+            "افتخارات": "profile",
+            "لیدربورد": "leaderboard",
+            "پنل ادمین": "admin_panel",
+            "پنل مدیریت": "admin_panel",
+            "کنترل پنل": "admin_panel",
         }
 
         action = keyword_actions.get(keyword)
@@ -964,6 +984,15 @@ class GroupHandlers:
                 "cups",
                 "moderation panel",
                 "admin panel",
+                "ایکس پی",
+                "ایکس‌پی",
+                "سطح",
+                "رتبه",
+                "نمایه",
+                "پروفایل",
+                "جام",
+                "لیدربورد",
+                "پنل",
             )
             if any(keyword.startswith(prefix) for prefix in prefixes):
                 await message.reply_text(texts.group_keyword_fallback)
