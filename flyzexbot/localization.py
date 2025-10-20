@@ -359,7 +359,7 @@ PERSIAN_TEXTS = TextPack(
     group_panel_overview_title="📊 تصویر کلی گروه",
     group_panel_metric_tracked="• اعضای ثبت‌شده: <b>{members}</b>",
     group_panel_metric_total_xp="• مجموع XP ذخیره‌شده: <b>{total_xp}</b>",
-    group_panel_metric_top_member="• فعال‌ترین عضو: <b>{name}</b> با <code>{xp}</code> XP",
+    group_panel_metric_top_member="• فعال‌ترین عضو: <b>{name}</b> با <code>{xp}</code> XP (سطح {level})",
     group_panel_metric_top_member_empty="• هنوز هیچ امتیاز تجربه‌ای ثبت نشده.",
     group_panel_metric_cups="• جام‌های ثبت‌شده: <b>{count}</b>",
     group_panel_metric_admins="• ادمین‌های ثبت‌شده: <b>{count}</b>",
@@ -383,7 +383,7 @@ PERSIAN_TEXTS = TextPack(
     group_panel_menu_xp_add_button="افزایش XP",
     group_panel_menu_xp_remove_button="کاهش XP",
     group_panel_menu_xp_members_header="📋 لیست ۱۰ عضو برتر ({count} نفر):\n{members}",
-    group_panel_menu_xp_members_entry="{index}. <b>{name}</b> — <code>{xp}</code> XP",
+    group_panel_menu_xp_members_entry="{index}. <b>{name}</b> — <code>{xp}</code> XP · سطح {level}",
     group_panel_menu_xp_members_empty="فعلاً هیچ امتیازی برای اعضا ثبت نشده.",
     group_panel_menu_cups_title="🏆 ابزارهای مدیریت جام",
     group_panel_menu_cups_description="سریع آخرین جام‌ها رو ببین یا یادت بندازیم چطور جام جدید ثبت کنی.",
@@ -490,7 +490,10 @@ PERSIAN_TEXTS = TextPack(
     group_help_cmd_promote="اضافه کردن ادمین جدید.",
     group_help_cmd_demote="حذف یک ادمین از لیست.",
     group_help_footer="برای ابزارهای بیشتر به وب‌اپ سر بزن یا از دکمهٔ تنظیمات استفاده کن.",
-    group_myxp_response="✨ {full_name} الان <b>{xp}</b> XP داره.",
+    group_myxp_response=(
+        "✨ {full_name} الان <b>{xp}</b> XP داره و در سطح <b>{level}</b> ایستاده. "
+        "تا سطح بعدی فقط <b>{xp_to_next}</b> XP مونده."
+    ),
     group_myxp_no_data="هنوز هیچ XP برای تو ثبت نشده.",
     language_names={
         "fa": "فارسی",
@@ -644,7 +647,7 @@ ENGLISH_TEXTS = TextPack(
     group_panel_overview_title="📊 Group snapshot",
     group_panel_metric_tracked="• Members tracked: <b>{members}</b>",
     group_panel_metric_total_xp="• Total stored XP: <b>{total_xp}</b>",
-    group_panel_metric_top_member="• Top member: <b>{name}</b> with <code>{xp}</code> XP",
+    group_panel_metric_top_member="• Top member: <b>{name}</b> with <code>{xp}</code> XP (Lv.{level})",
     group_panel_metric_top_member_empty="• No XP has been recorded yet.",
     group_panel_metric_cups="• Cups logged: <b>{count}</b>",
     group_panel_metric_admins="• Admins on record: <b>{count}</b>",
@@ -668,7 +671,7 @@ ENGLISH_TEXTS = TextPack(
     group_panel_menu_xp_add_button="Increase XP",
     group_panel_menu_xp_remove_button="Decrease XP",
     group_panel_menu_xp_members_header="📋 Top 10 tracked members ({count} total):\n{members}",
-    group_panel_menu_xp_members_entry="{index}. <b>{name}</b> — <code>{xp}</code> XP",
+    group_panel_menu_xp_members_entry="{index}. <b>{name}</b> — <code>{xp}</code> XP · Lv.{level}",
     group_panel_menu_xp_members_empty="No XP has been recorded for members yet.",
     group_panel_menu_cups_title="🏆 Cup management tools",
     group_panel_menu_cups_description="Quickly review recent cups or revisit how to log a new one.",
@@ -778,7 +781,10 @@ ENGLISH_TEXTS = TextPack(
     group_help_cmd_promote="Promote a member to admin.",
     group_help_cmd_demote="Remove someone from the admin list.",
     group_help_footer="For deeper controls, jump into the web dashboard or the DM admin panel.",
-    group_myxp_response="✨ {full_name} currently has <b>{xp}</b> XP.",
+    group_myxp_response=(
+        "✨ {full_name} currently has <b>{xp}</b> XP and is level <b>{level}</b>. "
+        "Only <b>{xp_to_next}</b> XP left until the next level!"
+    ),
     group_myxp_no_data="You don't have any XP in this chat yet.",
     language_names={
         "fa": "Persian",

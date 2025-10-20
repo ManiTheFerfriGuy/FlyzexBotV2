@@ -10,6 +10,7 @@ import pytest
 import flyzexbot.services.storage as storage_module
 
 from flyzexbot.services.storage import ApplicationResponse, Storage
+from flyzexbot.services.xp import calculate_level_progress
 
 
 def test_admin_management(tmp_path: Path) -> None:
@@ -154,6 +155,8 @@ def test_group_snapshot(tmp_path: Path) -> None:
         assert snapshot["admins_tracked"] >= 1
         assert snapshot["top_member"] is not None
         assert snapshot["top_member"]["display"].startswith("Ace")
+        progress = calculate_level_progress(7)
+        assert snapshot["top_member"]["level"] == progress.level
         assert snapshot["recent_cup"]["title"] == "Champ <Cup>"
         assert snapshot["last_activity"]
 

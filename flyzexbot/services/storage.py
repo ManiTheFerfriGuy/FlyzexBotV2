@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from aiofiles import open as aioopen
 
+from .xp import calculate_level_progress
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -816,6 +818,7 @@ class Storage:
         top_member: Optional[Dict[str, Any]] = None
         if top_pair is not None:
             user_key, xp_value = top_pair
+            progress = calculate_level_progress(xp_value)
             profile = self._state.xp_profiles.get(user_key, {})
             display_name = (
                 profile.get("full_name")
@@ -830,6 +833,7 @@ class Storage:
                 "user_id": resolved_id,
                 "display": display_name,
                 "xp": xp_value,
+                "level": progress.level,
             }
 
         cups = list(self._state.cups.get(chat_key, []))

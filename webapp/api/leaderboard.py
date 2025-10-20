@@ -5,6 +5,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 
+from flyzexbot.services.xp import calculate_level_progress
+
 from ..dependencies import SettingsDependency, StorageDependency
 from ..models import (
     CupsHistoryResponse,
@@ -37,10 +39,16 @@ async def xp_leaderboard(
     limit: LimitParam = None,
 ) -> SimpleLeaderboardResponse:
     effective_limit = limit or settings.xp.leaderboard_size
-    leaderboard = [
-        {"user_id": _normalize_user_id(user_id), "score": score}
-        for user_id, score in storage.get_xp_leaderboard(chat_id, effective_limit)
-    ]
+    leaderboard = []
+    for user_id, score in storage.get_xp_leaderboard(chat_id, effective_limit):
+        progress = calculate_level_progress(score)
+        leaderboard.append(
+            {
+                "user_id": _normalize_user_id(user_id),
+                "score": score,
+                "level": progress.level,
+            }
+        )
     return SimpleLeaderboardResponse(chat_id=chat_id, limit=effective_limit, leaderboard=leaderboard)
 
 
@@ -65,6 +73,7 @@ async def leaderboard_xp_top(
     for rank, (user_id, score) in enumerate(storage.get_global_xp_top(limit or 10), start=1):
         uid = _normalize_user_id(user_id)
         profile = storage.get_any_profile(int(uid)) if isinstance(uid, int) else {"username": None, "full_name": None}
+        progress = calculate_level_progress(score)
         entries.append(
             XPEntryModel(
                 rank=rank,
@@ -72,6 +81,7 @@ async def leaderboard_xp_top(
                 username=profile.get("username"),
                 full_name=profile.get("full_name"),
                 xp=score,
+                level=progress.level,
             )
         )
     return XPLeaderboardResponse(total=len(entries), leaderboard=entries)
