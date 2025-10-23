@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+from flyzexbot.application_form import (
+    ApplicationQuestionDefinition,
+    build_default_form,
+)
 from flyzexbot.handlers.dm import DMHandlers
 from flyzexbot.localization import ENGLISH_TEXTS, PERSIAN_TEXTS
 from flyzexbot.services.storage import (
@@ -32,7 +37,9 @@ class DummyChat:
     def __init__(self) -> None:
         self.messages: list[dict[str, str]] = []
 
-    async def send_message(self, text: str, **kwargs: str) -> None:  # noqa: ANN003 - kwargs not used directly
+    async def send_message(
+        self, text: str, **kwargs: str
+    ) -> None:  # noqa: ANN003 - kwargs not used directly
         self.messages.append({"text": text, **kwargs})
 
 
@@ -56,7 +63,9 @@ class DummyIncomingMessage:
 
 
 class DummyCallbackQuery:
-    def __init__(self, user: DummyUser, chat: DummyChat, data: str | None = None) -> None:
+    def __init__(
+        self, user: DummyUser, chat: DummyChat, data: str | None = None
+    ) -> None:
         self.from_user = user
         self.message = SimpleNamespace(chat=chat)
         self.data = data
@@ -93,6 +102,7 @@ def test_handle_apply_allows_admins_to_start_application() -> None:
         is_admin=lambda _: True,
         has_application=lambda _: False,
         get_application_status=lambda _: None,
+        get_application_form=lambda language=None: build_default_form(language),
     )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -104,9 +114,18 @@ def test_handle_apply_allows_admins_to_start_application() -> None:
     asyncio.run(handler.handle_apply_callback(update, context))
 
     query.answer.assert_awaited()
-    query.edit_message_text.assert_awaited_once_with(text=PERSIAN_TEXTS.dm_application_started)
+    query.edit_message_text.assert_awaited_once_with(
+        text=PERSIAN_TEXTS.dm_application_started
+    )
     assert context.user_data.get("is_filling_application") is True
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_application_role_prompt
+    flow_state = context.user_data.get("application_flow")
+    assert isinstance(flow_state, dict)
+    assert flow_state.get("pending_question_id") == "role"
+    assert flow_state.get("answered_values") == {}
+    assert (
+        chat.messages
+        and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_application_role_prompt
+    )
 
 
 def test_handle_apply_prevents_duplicate_for_admin() -> None:
@@ -114,6 +133,7 @@ def test_handle_apply_prevents_duplicate_for_admin() -> None:
         is_admin=lambda _: True,
         has_application=lambda _: True,
         get_application_status=lambda _: None,
+        get_application_form=lambda language=None: build_default_form(language),
     )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -125,7 +145,9 @@ def test_handle_apply_prevents_duplicate_for_admin() -> None:
     asyncio.run(handler.handle_apply_callback(update, context))
 
     query.answer.assert_awaited()
-    query.edit_message_text.assert_awaited_once_with(PERSIAN_TEXTS.dm_application_duplicate)
+    query.edit_message_text.assert_awaited_once_with(
+        PERSIAN_TEXTS.dm_application_duplicate
+    )
     assert "is_filling_application" not in context.user_data
     assert chat.messages == []
 
@@ -136,6 +158,7 @@ def test_handle_apply_prevents_reapplication_for_members() -> None:
         is_admin=lambda _: True,
         has_application=lambda _: False,
         get_application_status=lambda _: history_entry,
+        get_application_form=lambda language=None: build_default_form(language),
     )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -147,7 +170,9 @@ def test_handle_apply_prevents_reapplication_for_members() -> None:
     asyncio.run(handler.handle_apply_callback(update, context))
 
     query.answer.assert_awaited()
-    query.edit_message_text.assert_awaited_once_with(PERSIAN_TEXTS.dm_application_already_member)
+    query.edit_message_text.assert_awaited_once_with(
+        PERSIAN_TEXTS.dm_application_already_member
+    )
     assert "is_filling_application" not in context.user_data
     assert chat.messages == []
 
@@ -157,7 +182,7 @@ def test_multi_step_application_flow_collects_responses() -> None:
         has_application=lambda _: False,
         add_application=AsyncMock(return_value=True),
         get_application_status=lambda _: None,
-        get_application_questions=lambda _=None: {},
+        get_application_form=lambda language=None: build_default_form(language),
     )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -168,11 +193,11 @@ def test_multi_step_application_flow_collects_responses() -> None:
 
     asyncio.run(handler.handle_apply_callback(update, context))
 
-    assert context.user_data.get("application_flow") == {
-        "step": "role",
-        "answers": [],
-        "language_code": "fa",
-    }
+    flow_state = context.user_data.get("application_flow")
+    assert isinstance(flow_state, dict)
+    assert flow_state.get("pending_question_id") == "role"
+    assert flow_state.get("answers") == []
+    assert flow_state.get("answered_values") == {}
 
     first_message = DummyIncomingMessage("Trader")
     first_update = SimpleNamespace(
@@ -182,7 +207,10 @@ def test_multi_step_application_flow_collects_responses() -> None:
     )
 
     asyncio.run(handler.receive_application(first_update, context))
-    assert first_message.replies[-1] == PERSIAN_TEXTS.dm_application_followup_prompts["trader"]
+    assert (
+        first_message.replies[-1]
+        == PERSIAN_TEXTS.dm_application_followup_prompts["trader"]
+    )
 
     second_message = DummyIncomingMessage("Market making")
     second_update = SimpleNamespace(
@@ -217,9 +245,10 @@ def test_multi_step_application_flow_collects_responses() -> None:
     call_args = storage.add_application.await_args.kwargs
     assert call_args["user_id"] == user.id
     assert call_args["username"] == user.username
-    assert call_args["language_code"] == context.user_data.get("preferred_language")
     responses = call_args["responses"]
     assert len(responses) == 4
+    assert responses[0].question_id == "role"
+    assert responses[1].question_id.startswith("followup_")
     summary_reply = fourth_message.replies[-2]
     assert PERSIAN_TEXTS.dm_application_summary_title in summary_reply
     assert "Market making" in summary_reply
@@ -230,11 +259,18 @@ def test_multi_step_application_flow_collects_responses() -> None:
 
 def test_application_flow_respects_question_override() -> None:
     override_prompt = "Custom role?"
+    custom_form = [
+        ApplicationQuestionDefinition(
+            question_id="role",
+            prompt=override_prompt,
+            order=1,
+        )
+    ]
     storage = SimpleNamespace(
         has_application=lambda _: False,
         add_application=AsyncMock(return_value=True),
         get_application_status=lambda _: None,
-        get_application_questions=lambda _=None: {"role_prompt": override_prompt},
+        get_application_form=lambda _=None: custom_form,
     )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -253,20 +289,28 @@ def test_glass_dm_welcome_keyboard_includes_webapp_button_when_configured() -> N
     url = "https://example.com/panel"
     markup = glass_dm_welcome_keyboard(PERSIAN_TEXTS, webapp_url=url)
     buttons = _flatten_keyboard(markup)
-    assert any(getattr(button, "web_app", None) and button.web_app.url == url for button in buttons)
+    assert any(
+        getattr(button, "web_app", None) and button.web_app.url == url
+        for button in buttons
+    )
 
 
 def test_glass_dm_welcome_keyboard_includes_admin_button_for_admins() -> None:
     markup = glass_dm_welcome_keyboard(PERSIAN_TEXTS, is_admin=True)
     buttons = _flatten_keyboard(markup)
-    assert any(getattr(button, "callback_data", "") == "admin_panel" for button in buttons)
+    assert any(
+        getattr(button, "callback_data", "") == "admin_panel" for button in buttons
+    )
 
 
 def test_admin_panel_keyboard_uses_webapp_link_when_available() -> None:
     url = "https://example.com/admin"
     markup = admin_panel_keyboard(PERSIAN_TEXTS, webapp_url=url)
     buttons = _flatten_keyboard(markup)
-    assert any(getattr(button, "web_app", None) and button.web_app.url == url for button in buttons)
+    assert any(
+        getattr(button, "web_app", None) and button.web_app.url == url
+        for button in buttons
+    )
 
 
 def test_admin_panel_keyboard_includes_manage_admins_button() -> None:
@@ -290,8 +334,15 @@ def test_admin_panel_keyboard_includes_manage_questions_button() -> None:
 def test_manage_questions_sets_pending_state() -> None:
     storage = SimpleNamespace(
         is_admin=lambda _: True,
-        get_application_questions=lambda _=None: {},
-        set_application_question=AsyncMock(),
+        get_application_form=lambda _=None: [
+            ApplicationQuestionDefinition(
+                question_id="goals",
+                title="Goals question",
+                prompt="Original goals prompt",
+                kind="text",
+                order=3,
+            )
+        ],
     )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -307,7 +358,7 @@ def test_manage_questions_sets_pending_state() -> None:
     query_followup = DummyCallbackQuery(
         user,
         chat,
-        data="admin_panel:manage_questions:role_prompt",
+        data="admin_panel:manage_questions:edit_index:0",
     )
     update_followup = SimpleNamespace(callback_query=query_followup)
 
@@ -315,15 +366,19 @@ def test_manage_questions_sets_pending_state() -> None:
 
     pending = context.user_data.get("pending_question_edit")
     assert isinstance(pending, dict)
-    assert pending.get("question_id") == "role_prompt"
+    assert pending.get("action") == "edit"
+    assert pending.get("question_id") == "goals"
     assert chat.messages
-    assert "متن تازه" in chat.messages[-1]["text"]
+    assert chat.messages[-1].get("parse_mode") == "HTML"
+    assert "goals" in chat.messages[-1]["text"]
 
 
 def test_glass_dm_welcome_keyboard_hides_admin_button_for_regular_users() -> None:
     markup = glass_dm_welcome_keyboard(PERSIAN_TEXTS)
     buttons = _flatten_keyboard(markup)
-    assert all(getattr(button, "callback_data", "") != "admin_panel" for button in buttons)
+    assert all(
+        getattr(button, "callback_data", "") != "admin_panel" for button in buttons
+    )
 
 
 def test_start_message_includes_webapp_button_metadata() -> None:
@@ -339,7 +394,10 @@ def test_start_message_includes_webapp_button_metadata() -> None:
     assert chat.messages
     markup = chat.messages[-1].get("reply_markup")
     buttons = _flatten_keyboard(markup)
-    assert any(getattr(button, "web_app", None) and button.web_app.url == url for button in buttons)
+    assert any(
+        getattr(button, "web_app", None) and button.web_app.url == url
+        for button in buttons
+    )
 
 
 def test_start_message_includes_admin_button_for_admin() -> None:
@@ -353,7 +411,9 @@ def test_start_message_includes_admin_button_for_admin() -> None:
 
     assert chat.messages
     buttons = _flatten_keyboard(chat.messages[-1]["reply_markup"])
-    assert any(getattr(button, "callback_data", "") == "admin_panel" for button in buttons)
+    assert any(
+        getattr(button, "callback_data", "") == "admin_panel" for button in buttons
+    )
 
 
 def test_start_message_hides_admin_button_for_non_admin() -> None:
@@ -367,7 +427,9 @@ def test_start_message_hides_admin_button_for_non_admin() -> None:
 
     assert chat.messages
     buttons = _flatten_keyboard(chat.messages[-1]["reply_markup"])
-    assert all(getattr(button, "callback_data", "") != "admin_panel" for button in buttons)
+    assert all(
+        getattr(button, "callback_data", "") != "admin_panel" for button in buttons
+    )
 
 
 def test_list_admins_shows_details() -> None:
@@ -400,7 +462,10 @@ def test_promote_admin_invalid_identifier() -> None:
     asyncio.run(handler.promote_admin(update, context))
 
     storage.add_admin.assert_not_awaited()
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_invalid_user_id
+    assert (
+        chat.messages
+        and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_invalid_user_id
+    )
 
 
 def test_demote_admin_invalid_identifier() -> None:
@@ -413,20 +478,28 @@ def test_demote_admin_invalid_identifier() -> None:
     asyncio.run(handler.demote_admin(update, context))
 
     storage.remove_admin.assert_not_awaited()
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_invalid_user_id
+    assert (
+        chat.messages
+        and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_invalid_user_id
+    )
 
 
 def test_promote_admin_invalid_identifier_english() -> None:
     storage = SimpleNamespace(add_admin=AsyncMock())
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
-    update = SimpleNamespace(effective_user=DummyUser(1, language_code="en"), effective_chat=chat)
+    update = SimpleNamespace(
+        effective_user=DummyUser(1, language_code="en"), effective_chat=chat
+    )
     context = DummyContext(["oops"])
 
     asyncio.run(handler.promote_admin(update, context))
 
     storage.add_admin.assert_not_awaited()
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_invalid_user_id
+    assert (
+        chat.messages
+        and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_invalid_user_id
+    )
 
 
 def test_withdraw_success() -> None:
@@ -439,7 +512,9 @@ def test_withdraw_success() -> None:
     asyncio.run(handler.withdraw(update, context))
 
     storage.withdraw_application.assert_awaited_once_with(5)
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_withdraw_success
+    assert (
+        chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_withdraw_success
+    )
 
 
 def test_withdraw_not_found() -> None:
@@ -452,11 +527,16 @@ def test_withdraw_not_found() -> None:
     asyncio.run(handler.withdraw(update, context))
 
     storage.withdraw_application.assert_awaited_once_with(6)
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_withdraw_not_found
+    assert (
+        chat.messages
+        and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_withdraw_not_found
+    )
 
 
 def test_list_applications_requires_admin_privileges() -> None:
-    storage = SimpleNamespace(is_admin=lambda _: False, get_pending_applications=lambda: [])
+    storage = SimpleNamespace(
+        is_admin=lambda _: False, get_pending_applications=lambda: []
+    )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
     update = SimpleNamespace(effective_user=DummyUser(12), effective_chat=chat)
@@ -468,7 +548,9 @@ def test_list_applications_requires_admin_privileges() -> None:
 
 
 def test_show_admin_panel_requires_admin_privileges() -> None:
-    storage = SimpleNamespace(is_admin=lambda _: False, get_pending_applications=lambda: [])
+    storage = SimpleNamespace(
+        is_admin=lambda _: False, get_pending_applications=lambda: []
+    )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
     user = DummyUser(50)
@@ -499,7 +581,10 @@ def test_show_admin_panel_displays_admin_keyboard() -> None:
     kwargs = query.edit_message_text.await_args.kwargs
     assert PERSIAN_TEXTS.dm_admin_panel_intro in kwargs["text"]
     buttons = _flatten_keyboard(kwargs["reply_markup"])
-    assert any(getattr(button, "callback_data", "") == "admin_panel:view_applications" for button in buttons)
+    assert any(
+        getattr(button, "callback_data", "") == "admin_panel:view_applications"
+        for button in buttons
+    )
     assert chat.messages == []
 
 
@@ -516,7 +601,9 @@ def test_status_without_history() -> None:
 
 
 def test_status_with_pending_history() -> None:
-    history_entry = ApplicationHistoryEntry(status="pending", updated_at=NEW_YEAR_TS, note=None)
+    history_entry = ApplicationHistoryEntry(
+        status="pending", updated_at=NEW_YEAR_TS, note=None
+    )
     storage = SimpleNamespace(get_application_status=lambda _: history_entry)
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -531,11 +618,15 @@ def test_status_with_pending_history() -> None:
 
 
 def test_status_with_approved_history_english() -> None:
-    history_entry = ApplicationHistoryEntry(status="approved", updated_at=NEW_YEAR_TS, note=None)
+    history_entry = ApplicationHistoryEntry(
+        status="approved", updated_at=NEW_YEAR_TS, note=None
+    )
     storage = SimpleNamespace(get_application_status=lambda _: history_entry)
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
-    update = SimpleNamespace(effective_user=DummyUser(9, language_code="en"), effective_chat=chat)
+    update = SimpleNamespace(
+        effective_user=DummyUser(9, language_code="en"), effective_chat=chat
+    )
     context = DummyContext([])
 
     asyncio.run(handler.status(update, context))
@@ -577,11 +668,15 @@ def test_handle_admin_panel_action_view_applications() -> None:
 
 
 def test_handle_admin_panel_action_view_members() -> None:
-    history_entry = ApplicationHistoryEntry(status="approved", updated_at=MODERN_TS, note=None)
+    history_entry = ApplicationHistoryEntry(
+        status="approved", updated_at=MODERN_TS, note=None
+    )
     storage = SimpleNamespace(
         is_admin=lambda _: True,
         get_pending_applications=lambda: [],
-        get_applicants_by_status=lambda status: [(321, history_entry)] if status == "approved" else [],
+        get_applicants_by_status=lambda status: (
+            [(321, history_entry)] if status == "approved" else []
+        ),
     )
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
@@ -658,7 +753,10 @@ def test_handle_admin_panel_action_manage_admins_add_sets_pending_action() -> No
 
     query.answer.assert_awaited()
     assert context.user_data.get("pending_admin_action") == "promote"
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_panel_add_admin_prompt
+    assert (
+        chat.messages
+        and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_panel_add_admin_prompt
+    )
 
 
 def test_handle_admin_panel_action_manage_admins_remove_sets_pending_action() -> None:
@@ -670,7 +768,9 @@ def test_handle_admin_panel_action_manage_admins_remove_sets_pending_action() ->
     handler = DMHandlers(storage=storage, owner_id=1)
     chat = DummyChat()
     owner_user = DummyUser(1)
-    query = DummyCallbackQuery(owner_user, chat, data="admin_panel:manage_admins:remove")
+    query = DummyCallbackQuery(
+        owner_user, chat, data="admin_panel:manage_admins:remove"
+    )
     update = SimpleNamespace(callback_query=query)
     context = DummyContext([])
 
@@ -678,7 +778,10 @@ def test_handle_admin_panel_action_manage_admins_remove_sets_pending_action() ->
 
     query.answer.assert_awaited()
     assert context.user_data.get("pending_admin_action") == "demote"
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_enter_user_id
+    assert (
+        chat.messages
+        and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_enter_user_id
+    )
 
 
 def test_handle_admin_panel_action_manage_admins_list_sends_details() -> None:
@@ -745,7 +848,9 @@ def test_receive_application_promote_admin_flow() -> None:
 
     storage.add_admin.assert_awaited_once_with(123)
     assert context.user_data.get("pending_admin_action") is None
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_added.format(user_id=123)
+    assert chat.messages and chat.messages[-1][
+        "text"
+    ] == PERSIAN_TEXTS.dm_admin_added.format(user_id=123)
 
 
 def test_receive_application_demote_admin_flow() -> None:
@@ -767,22 +872,38 @@ def test_receive_application_demote_admin_flow() -> None:
 
     storage.remove_admin.assert_awaited_once_with(321)
     assert context.user_data.get("pending_admin_action") is None
-    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_removed.format(user_id=321)
+    assert chat.messages and chat.messages[-1][
+        "text"
+    ] == PERSIAN_TEXTS.dm_admin_removed.format(user_id=321)
 
 
 def test_process_question_edit_response_updates_storage() -> None:
-    set_question = AsyncMock()
-    storage = SimpleNamespace(set_application_question=set_question)
+    upsert = AsyncMock()
+    delete = AsyncMock()
+    storage = SimpleNamespace(
+        upsert_application_question_definition=upsert,
+        delete_application_question_definition=delete,
+    )
     handler = DMHandlers(storage=storage, owner_id=1)
     context = DummyContext([])
     context.user_data["pending_question_edit"] = {
-        "question_id": "goals_prompt",
+        "action": "edit",
+        "question_id": "goals",
         "language_code": "en",
-        "label": ENGLISH_TEXTS.dm_admin_questions_goals_label,
     }
-    expected_label = context.user_data["pending_question_edit"]["label"]
 
-    message = DummyIncomingMessage("Reach new heights")
+    payload = {
+        "question_id": "goals",
+        "title": "Goals question",
+        "prompt": "Reach new heights",
+        "kind": "text",
+        "order": 3,
+        "required": True,
+        "options": [],
+        "depends_on": None,
+        "depends_value": None,
+    }
+    message = DummyIncomingMessage(json.dumps(payload))
     update = SimpleNamespace(
         message=message,
         effective_user=DummyUser(50, language_code="en"),
@@ -790,27 +911,28 @@ def test_process_question_edit_response_updates_storage() -> None:
 
     asyncio.run(handler._process_question_edit_response(update, context))
 
-    set_question.assert_awaited_once_with(
-        "goals_prompt",
-        "Reach new heights",
-        language_code="en",
-    )
+    assert upsert.await_count == 1
+    args, kwargs = upsert.await_args
+    definition = args[0]
+    assert definition.question_id == "goals"
+    assert definition.prompt == "Reach new heights"
+    assert kwargs.get("language_code") == "en"
     assert not context.user_data.get("pending_question_edit")
     assert message.replies
-    assert PERSIAN_TEXTS.dm_admin_questions_success.format(
-        label=expected_label
-    ) in message.replies[-1]
+    assert (
+        PERSIAN_TEXTS.dm_admin_questions_saved.format(label=definition.title)
+        in message.replies[-1]
+    )
 
 
-def test_process_question_edit_response_allows_reset() -> None:
-    set_question = AsyncMock()
-    storage = SimpleNamespace(set_application_question=set_question)
+def test_process_question_edit_response_handles_reset_language() -> None:
+    reset_form = AsyncMock()
+    storage = SimpleNamespace(reset_application_form=reset_form)
     handler = DMHandlers(storage=storage, owner_id=1)
     context = DummyContext([])
     context.user_data["pending_question_edit"] = {
-        "question_id": "availability_prompt",
-        "language_code": None,
-        "label": PERSIAN_TEXTS.dm_admin_questions_availability_label,
+        "action": "reset",
+        "language_code": "fa",
     }
 
     message = DummyIncomingMessage(PERSIAN_TEXTS.dm_admin_questions_reset_keyword)
@@ -821,16 +943,56 @@ def test_process_question_edit_response_allows_reset() -> None:
 
     asyncio.run(handler._process_question_edit_response(update, context))
 
-    set_question.assert_awaited_once_with(
-        "availability_prompt",
-        None,
-        language_code=None,
-    )
+    reset_form.assert_awaited_once_with(language_code="fa")
     assert "pending_question_edit" not in context.user_data
     assert message.replies
-    assert PERSIAN_TEXTS.dm_admin_questions_reset_success.format(
-        label=PERSIAN_TEXTS.dm_admin_questions_availability_label
-    ) in message.replies[-1]
+    assert (
+        PERSIAN_TEXTS.dm_admin_questions_reset_language_success in message.replies[-1]
+    )
+
+
+def test_process_question_edit_response_handles_import() -> None:
+    import_form = AsyncMock()
+    storage = SimpleNamespace(import_application_form=import_form)
+    handler = DMHandlers(storage=storage, owner_id=1)
+    context = DummyContext([])
+    context.user_data["preferred_language"] = "en"
+    context.user_data["pending_question_edit"] = {
+        "action": "import",
+        "language_code": "en",
+    }
+
+    payload = [
+        {
+            "question_id": "role",
+            "title": "Role",
+            "prompt": "Pick a role",
+            "kind": "choice",
+            "order": 1,
+            "required": True,
+            "options": [],
+            "depends_on": None,
+            "depends_value": None,
+        }
+    ]
+    message = DummyIncomingMessage(json.dumps(payload))
+    update = SimpleNamespace(
+        message=message,
+        effective_user=DummyUser(70, language_code="en"),
+    )
+
+    asyncio.run(handler._process_question_edit_response(update, context))
+
+    import_form.assert_awaited_once()
+    args, kwargs = import_form.await_args
+    definitions = args[0]
+    assert definitions[0].question_id == "role"
+    assert kwargs.get("language_code") == "en"
+    assert message.replies
+    assert (
+        ENGLISH_TEXTS.dm_admin_questions_import_success.format(count=1)
+        in message.replies[-1]
+    )
 
 
 def test_admin_handles_note_for_approval() -> None:

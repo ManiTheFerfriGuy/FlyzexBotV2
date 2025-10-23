@@ -1,16 +1,33 @@
 from __future__ import annotations
 
-from html import escape
 import logging
-from typing import Any, Dict, List
+from html import escape
+import json
+from typing import Any, Dict, List, Optional
 from telegram import InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
-from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
-                          MessageHandler, filters)
+from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 
-from ..localization import (AVAILABLE_LANGUAGE_CODES, DEFAULT_LANGUAGE_CODE,
-                            TextPack, get_default_text_pack, get_text_pack,
-                            normalize_language_code)
+from ..application_form import (
+    ApplicationQuestionDefinition,
+    QuestionOption,
+    parse_form,
+    serialise_form,
+)
+from ..localization import (
+    AVAILABLE_LANGUAGE_CODES,
+    DEFAULT_LANGUAGE_CODE,
+    TextPack,
+    get_default_text_pack,
+    get_text_pack,
+    normalize_language_code,
+)
 from ..services.analytics import AnalyticsTracker, NullAnalytics
 from ..services.security import RateLimitGuard
 from ..services.storage import (
@@ -19,13 +36,17 @@ from ..services.storage import (
     ApplicationResponse,
     Storage,
 )
-from ..ui.keyboards import (admin_management_keyboard, admin_panel_keyboard,
-                            admin_questions_keyboard,
-                            application_review_keyboard,
-                            glass_dm_welcome_keyboard,
-                            language_options_keyboard)
+from ..ui.keyboards import (
+    admin_management_keyboard,
+    admin_panel_keyboard,
+    admin_questions_keyboard,
+    application_review_keyboard,
+    glass_dm_welcome_keyboard,
+    language_options_keyboard,
+)
 
 LOGGER = logging.getLogger(__name__)
+
 
 class DMHandlers:
     def __init__(
@@ -45,16 +66,31 @@ class DMHandlers:
         return [
             CommandHandler("start", self.start, filters=private_filter),
             CommandHandler("cancel", self.cancel, filters=private_filter),
-            MessageHandler(private_filter & filters.TEXT & ~filters.COMMAND, self.receive_application),
-            CallbackQueryHandler(self.handle_apply_callback, pattern="^apply_for_guild$"),
+            MessageHandler(
+                private_filter & filters.TEXT & ~filters.COMMAND,
+                self.receive_application,
+            ),
+            CallbackQueryHandler(
+                self.handle_apply_callback, pattern="^apply_for_guild$"
+            ),
             CallbackQueryHandler(self.show_admin_panel, pattern="^admin_panel$"),
-            CallbackQueryHandler(self.handle_admin_panel_action, pattern=r"^admin_panel:"),
-            CallbackQueryHandler(self.show_status_callback, pattern="^application_status$"),
-            CallbackQueryHandler(self.handle_withdraw_callback, pattern="^application_withdraw$"),
+            CallbackQueryHandler(
+                self.handle_admin_panel_action, pattern=r"^admin_panel:"
+            ),
+            CallbackQueryHandler(
+                self.show_status_callback, pattern="^application_status$"
+            ),
+            CallbackQueryHandler(
+                self.handle_withdraw_callback, pattern="^application_withdraw$"
+            ),
             CallbackQueryHandler(self.show_language_menu, pattern="^language_menu$"),
-            CallbackQueryHandler(self.close_language_menu, pattern="^close_language_menu$"),
+            CallbackQueryHandler(
+                self.close_language_menu, pattern="^close_language_menu$"
+            ),
             CallbackQueryHandler(self.set_language_callback, pattern=r"^set_language:"),
-            CallbackQueryHandler(self.handle_application_action, pattern=r"^application:"),
+            CallbackQueryHandler(
+                self.handle_application_action, pattern=r"^application:"
+            ),
             CommandHandler("pending", self.list_applications),
             CommandHandler("admins", self.list_admins),
             CommandHandler("promote", self.promote_admin),
@@ -85,7 +121,9 @@ class DMHandlers:
         except Exception as exc:
             LOGGER.error("Failed to send welcome message: %s", exc)
 
-    async def handle_apply_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_apply_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -98,7 +136,10 @@ class DMHandlers:
         texts = self._get_texts(context, getattr(user, "language_code", None))
         await self.analytics.record("dm.apply_requested")
         status_entry = self._get_application_status(user.id)
-        if status_entry and getattr(status_entry, "status", "").casefold() == "approved":
+        if (
+            status_entry
+            and getattr(status_entry, "status", "").casefold() == "approved"
+        ):
             await query.edit_message_text(texts.dm_application_already_member)
             return
         if self.storage.has_application(user.id):
@@ -109,10 +150,18 @@ class DMHandlers:
             context,
             getattr(user, "language_code", None),
         )
+        form_definitions = self._get_application_form(active_language)
+        next_question = self._select_next_question(form_definitions, {})
+        if next_question is None:
+            await query.edit_message_text(texts.dm_application_no_questions)
+            return
+
         flow_state = {
-            "step": "role",
             "answers": [],
             "language_code": active_language,
+            "form": serialise_form(form_definitions),
+            "answered_values": {},
+            "pending_question_id": next_question.question_id,
         }
         if isinstance(context.user_data, dict):
             context.user_data["is_filling_application"] = True
@@ -122,15 +171,12 @@ class DMHandlers:
         )
         chat = query.message.chat if query.message else None
         if chat is not None:
-            role_prompt = self._resolve_question_prompt(
-                "role_prompt",
-                texts,
-                active_language,
-            )
-            await chat.send_message(role_prompt)
+            await chat.send_message(next_question.prompt)
         return
 
-    async def show_admin_panel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def show_admin_panel(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -156,7 +202,9 @@ class DMHandlers:
         )
         await self.analytics.record("dm.admin_panel_opened")
 
-    async def handle_admin_panel_action(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_admin_panel_action(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -225,7 +273,6 @@ class DMHandlers:
                     context.user_data["pending_admin_action"] = "promote"
                 if chat is not None:
                     await chat.send_message(texts.dm_admin_panel_add_admin_prompt)
-                await self.analytics.record("dm.admin_panel_manage_admins_add")
                 return
 
             if sub_action == "remove":
@@ -234,7 +281,6 @@ class DMHandlers:
                     context.user_data["pending_admin_action"] = "demote"
                 if chat is not None:
                     await chat.send_message(texts.dm_admin_enter_user_id)
-                await self.analytics.record("dm.admin_panel_manage_admins_remove")
                 return
 
             if sub_action == "list":
@@ -242,23 +288,10 @@ class DMHandlers:
                 if chat is not None:
                     admins_text = self._render_admins_list(texts)
                     await chat.send_message(admins_text, parse_mode=ParseMode.HTML)
-                await self.analytics.record("dm.admin_panel_manage_admins_list")
-                return
-
-            if sub_action == "back":
-                await query.answer()
-                await query.edit_message_text(
-                    text=self._build_admin_panel_text(texts),
-                    reply_markup=admin_panel_keyboard(
-                        texts,
-                        self._get_webapp_url(context),
-                    ),
-                    parse_mode=ParseMode.HTML,
-                )
-                await self.analytics.record("dm.admin_panel_manage_admins_back")
                 return
 
         if action.startswith("manage_questions"):
+
             await query.answer()
             sub_action = ""
             if ":" in action:
@@ -269,23 +302,50 @@ class DMHandlers:
                 getattr(user, "language_code", None),
             )
             language_label = self._get_language_label(texts, active_language)
+            form_definitions = self._get_application_form(active_language)
 
-            if sub_action == "" or sub_action == "menu":
+            if sub_action in ("", "menu"):
                 intro = texts.dm_admin_questions_menu_intro.format(
-                    reset_keyword=texts.dm_admin_questions_reset_keyword
+                    reset_keyword=escape(texts.dm_admin_questions_reset_keyword)
                 )
-                menu_text = (
-                    f"{texts.dm_admin_questions_menu_title.format(language=language_label)}"
-                    f"\n\n{intro}"
+                if form_definitions:
+                    listing_parts: list[str] = []
+                    for definition in form_definitions:
+                        display_title = (
+                            definition.title
+                            or definition.prompt
+                            or definition.question_id
+                        )
+                        listing_parts.append(
+                            texts.dm_admin_questions_list_item.format(
+                                order=definition.order,
+                                title=escape(display_title),
+                                question_id=escape(definition.question_id),
+                                kind=escape(definition.kind),
+                            )
+                        )
+                    listing = "\n".join(listing_parts)
+                else:
+                    listing = texts.dm_admin_questions_empty
+
+                menu_text = "\n\n".join(
+                    [
+                        texts.dm_admin_questions_menu_title.format(
+                            language=escape(language_label)
+                        ),
+                        intro,
+                        listing,
+                    ]
                 )
                 await query.edit_message_text(
                     text=menu_text,
-                    reply_markup=admin_questions_keyboard(texts),
+                    reply_markup=admin_questions_keyboard(
+                        texts, questions=form_definitions
+                    ),
                     parse_mode=ParseMode.HTML,
                 )
                 await self.analytics.record("dm.admin_panel_manage_questions_opened")
                 return
-
             if sub_action == "back":
                 await query.edit_message_text(
                     text=self._build_admin_panel_text(texts),
@@ -298,37 +358,183 @@ class DMHandlers:
                 await self.analytics.record("dm.admin_panel_manage_questions_back")
                 return
 
-            question_id = sub_action
-            if sub_action.startswith("followup:"):
-                _, role_key = sub_action.split(":", 1)
-                question_id = f"followup_{role_key}"
-
-            label = self._get_question_label(question_id, texts)
-            current_prompt = self._resolve_question_prompt(
-                question_id,
-                texts,
-                active_language,
-            )
-            prompt_text = texts.dm_admin_questions_prompt.format(
-                label=label,
-                reset_keyword=texts.dm_admin_questions_reset_keyword,
-                current=current_prompt or "—",
-            )
-
-            if isinstance(context.user_data, dict):
-                context.user_data["pending_question_edit"] = {
-                    "question_id": question_id,
-                    "language_code": active_language,
-                    "label": label,
+            if sub_action == "add":
+                template_payload = {
+                    "question_id": "new_question_id",
+                    "title": texts.dm_admin_questions_new_title,
+                    "prompt": texts.dm_admin_questions_new_prompt,
+                    "kind": "text",
+                    "order": len(form_definitions) + 1,
+                    "required": True,
+                    "options": [],
+                    "depends_on": None,
+                    "depends_value": None,
                 }
+                template = json.dumps(template_payload, ensure_ascii=False, indent=2)
+                prompt = texts.dm_admin_questions_add_prompt.format(
+                    template=escape(template),
+                    cancel_keyword=escape(texts.dm_admin_questions_cancel_keyword),
+                )
+                if chat is not None:
+                    await chat.send_message(
+                        prompt,
+                        parse_mode=ParseMode.HTML,
+                    )
+                if isinstance(context.user_data, dict):
+                    context.user_data["pending_question_edit"] = {
+                        "action": "add",
+                        "language_code": active_language,
+                    }
+                await self.analytics.record("dm.admin_panel_manage_questions_prompt")
+                return
 
-            if chat is not None:
-                await chat.send_message(prompt_text)
+            if sub_action == "import":
+                sample = json.dumps(
+                    [
+                        {
+                            "question_id": "sample_question",
+                            "title": texts.dm_admin_questions_new_title,
+                            "prompt": texts.dm_admin_questions_new_prompt,
+                            "kind": "text",
+                            "order": 1,
+                            "required": True,
+                            "options": [],
+                            "depends_on": None,
+                            "depends_value": None,
+                        }
+                    ],
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                prompt = texts.dm_admin_questions_import_prompt.format(
+                    template=escape(sample),
+                    cancel_keyword=escape(texts.dm_admin_questions_cancel_keyword),
+                )
+                if chat is not None:
+                    await chat.send_message(
+                        prompt,
+                        parse_mode=ParseMode.HTML,
+                    )
+                if isinstance(context.user_data, dict):
+                    context.user_data["pending_question_edit"] = {
+                        "action": "import",
+                        "language_code": active_language,
+                    }
+                await self.analytics.record("dm.admin_panel_manage_questions_prompt")
+                return
 
-            await self.analytics.record("dm.admin_panel_manage_questions_prompt")
+            if sub_action == "export":
+                export_payload = serialise_form(form_definitions)
+                export_text = json.dumps(export_payload, ensure_ascii=False, indent=2)
+                if chat is not None:
+                    await chat.send_message(
+                        "\n\n".join(
+                            [
+                                texts.dm_admin_questions_export_success,
+                                f"<pre>{escape(export_text)}</pre>",
+                            ]
+                        ),
+                        parse_mode=ParseMode.HTML,
+                    )
+                return
+            if sub_action == "reset":
+                prompt = texts.dm_admin_questions_reset_prompt.format(
+                    reset_keyword=escape(texts.dm_admin_questions_reset_keyword),
+                    cancel_keyword=escape(texts.dm_admin_questions_cancel_keyword),
+                )
+                if chat is not None:
+                    await chat.send_message(
+                        prompt,
+                        parse_mode=ParseMode.HTML,
+                    )
+                if isinstance(context.user_data, dict):
+                    context.user_data["pending_question_edit"] = {
+                        "action": "reset",
+                        "language_code": active_language,
+                    }
+                await self.analytics.record("dm.admin_panel_manage_questions_prompt")
+                return
+
+            if sub_action.startswith("edit_index:") or sub_action.startswith("edit:"):
+                definition: ApplicationQuestionDefinition | None = None
+                if sub_action.startswith("edit_index:"):
+                    _, index_raw = sub_action.split(":", 1)
+                    try:
+                        target_index = int(index_raw)
+                    except ValueError:
+                        target_index = -1
+                    if 0 <= target_index < len(form_definitions):
+                        definition = form_definitions[target_index]
+                else:
+                    _, question_id = sub_action.split(":", 1)
+                    definition = self._find_question(form_definitions, question_id)
+                if definition is None:
+                    await message.reply_text(texts.dm_admin_questions_not_found)
+                    return
+                payload = json.dumps(definition.to_dict(), ensure_ascii=False, indent=2)
+                prompt = texts.dm_admin_questions_edit_prompt.format(
+                    template=escape(payload),
+                    cancel_keyword=escape(texts.dm_admin_questions_cancel_keyword),
+                )
+                if chat is not None:
+                    await chat.send_message(
+                        prompt,
+                        parse_mode=ParseMode.HTML,
+                    )
+                if isinstance(context.user_data, dict):
+                    context.user_data["pending_question_edit"] = {
+                        "action": "edit",
+                        "language_code": active_language,
+                        "question_id": definition.question_id,
+                    }
+                await self.analytics.record("dm.admin_panel_manage_questions_prompt")
+                return
+
+            if sub_action.startswith("delete_index:") or sub_action.startswith(
+                "delete:"
+            ):
+                definition = None
+                if sub_action.startswith("delete_index:"):
+                    _, index_raw = sub_action.split(":", 1)
+                    try:
+                        target_index = int(index_raw)
+                    except ValueError:
+                        target_index = -1
+                    if 0 <= target_index < len(form_definitions):
+                        definition = form_definitions[target_index]
+                else:
+                    _, question_id = sub_action.split(":", 1)
+                    definition = self._find_question(form_definitions, question_id)
+                if definition is None:
+                    await message.reply_text(texts.dm_admin_questions_not_found)
+                    return
+                prompt = texts.dm_admin_questions_delete_prompt.format(
+                    title=escape(
+                        definition.title or definition.prompt or definition.question_id
+                    ),
+                    question_id=escape(definition.question_id),
+                    confirm_keyword=escape(texts.dm_admin_questions_delete_keyword),
+                    cancel_keyword=escape(texts.dm_admin_questions_cancel_keyword),
+                )
+                if chat is not None:
+                    await chat.send_message(
+                        prompt,
+                        parse_mode=ParseMode.HTML,
+                    )
+                if isinstance(context.user_data, dict):
+                    context.user_data["pending_question_edit"] = {
+                        "action": "delete",
+                        "language_code": active_language,
+                        "question_id": definition.question_id,
+                    }
+                await self.analytics.record("dm.admin_panel_manage_questions_prompt")
+                return
+
+            await message.reply_text(texts.dm_admin_questions_not_found)
             return
 
         if action == "insights":
+
             await query.answer()
             stats_getter = getattr(self.storage, "get_application_statistics", None)
             if callable(stats_getter) and chat is not None:
@@ -344,7 +550,9 @@ class DMHandlers:
                 webapp_url = self._get_webapp_url(context)
                 if webapp_url:
                     await chat.send_message(
-                        texts.dm_admin_panel_more_tools_text.format(webapp_url=webapp_url),
+                        texts.dm_admin_panel_more_tools_text.format(
+                            webapp_url=webapp_url
+                        ),
                         parse_mode=ParseMode.HTML,
                     )
                 else:
@@ -368,8 +576,14 @@ class DMHandlers:
 
         await query.answer()
 
-    async def receive_application(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        pending_note = context.user_data.get("pending_review_note") if isinstance(context.user_data, dict) else None
+    async def receive_application(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        pending_note = (
+            context.user_data.get("pending_review_note")
+            if isinstance(context.user_data, dict)
+            else None
+        )
         if pending_note:
             await self._process_admin_note_response(update, context)
             return
@@ -401,7 +615,10 @@ class DMHandlers:
 
         texts = self._get_texts(context, getattr(user, "language_code", None))
         status_entry = self._get_application_status(user.id)
-        if status_entry and getattr(status_entry, "status", "").casefold() == "approved":
+        if (
+            status_entry
+            and getattr(status_entry, "status", "").casefold() == "approved"
+        ):
             await update.message.reply_text(texts.dm_application_already_member)
             context.user_data.pop("is_filling_application", None)
             context.user_data.pop("application_flow", None)
@@ -485,7 +702,9 @@ class DMHandlers:
             await update.message.reply_text(texts.dm_cancelled)
         await self.analytics.record("dm.cancelled")
 
-    async def list_applications(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def list_applications(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         user = update.effective_user
         chat = update.effective_chat
         if user is None or chat is None:
@@ -496,7 +715,9 @@ class DMHandlers:
             return
         await self._send_pending_applications(chat, texts)
 
-    async def handle_application_action(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_application_action(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -558,7 +779,9 @@ class DMHandlers:
             parse_mode=ParseMode.HTML,
         )
 
-    async def _process_admin_note_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def _process_admin_note_response(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         message = update.message
         user = update.effective_user
         if message is None or user is None:
@@ -598,21 +821,19 @@ class DMHandlers:
                 else applicant_texts.dm_application_denied_user
             )
             if note_to_store:
-                applicant_message = (
-                    f"{applicant_message}\n\n📝 {applicant_texts.dm_application_note_label}: {note_to_store}"
-                )
+                applicant_message = f"{applicant_message}\n\n📝 {applicant_texts.dm_application_note_label}: {note_to_store}"
             await self._notify_user(context, target_id, applicant_message)
 
-            confirmation_template = admin_texts.dm_application_note_confirmations.get(action, "")
+            confirmation_template = admin_texts.dm_application_note_confirmations.get(
+                action, ""
+            )
             confirmation_text = confirmation_template.format(
                 full_name=escape(str(pending_note.get("full_name", target_id))),
                 user_id=target_id,
             )
             final_text = f"{application_text}\n\n{confirmation_text}"
             if note_to_store:
-                final_text = (
-                    f"{final_text}\n📝 {admin_texts.dm_application_note_label}: {escape(note_to_store)}"
-                )
+                final_text = f"{final_text}\n📝 {admin_texts.dm_application_note_label}: {escape(note_to_store)}"
 
             try:
                 await context.bot.edit_message_text(
@@ -653,44 +874,198 @@ class DMHandlers:
             context.user_data.pop("pending_question_edit", None)
             return
 
-        question_id = pending.get("question_id")
+        action = str(pending.get("action"))
         language_code = pending.get("language_code")
-        label = pending.get("label") or self._get_question_label(
-            str(question_id),
-            texts,
-        )
-
         payload = (message.text or "").strip()
-        if not question_id or not payload:
+        cancel_keyword = getattr(
+            texts, "dm_admin_questions_cancel_keyword", "/cancel"
+        ).casefold()
+
+        if not payload or payload.casefold() == cancel_keyword:
             await message.reply_text(texts.dm_admin_questions_cancelled)
             context.user_data.pop("pending_question_edit", None)
             return
 
-        reset_keyword = texts.dm_admin_questions_reset_keyword.casefold()
         try:
-            if payload.casefold() == reset_keyword:
-                await self.storage.set_application_question(
-                    question_id,
-                    None,
-                    language_code=language_code,
+            if action == "edit":
+                await self._handle_question_edit(
+                    payload, pending, language_code, texts, message
                 )
-                await message.reply_text(
-                    texts.dm_admin_questions_reset_success.format(label=label)
+            elif action == "add":
+                await self._handle_question_add(payload, language_code, texts, message)
+            elif action == "import":
+                await self._handle_question_import(
+                    payload, language_code, texts, message
+                )
+            elif action == "delete":
+                await self._handle_question_delete(
+                    payload, pending, language_code, texts, message
+                )
+            elif action == "reset":
+                await self._handle_question_reset(
+                    payload, language_code, texts, message
                 )
             else:
-                await self.storage.set_application_question(
-                    question_id,
-                    payload,
-                    language_code=language_code,
-                )
-                await message.reply_text(
-                    texts.dm_admin_questions_success.format(label=label)
-                )
-            await self.analytics.record("dm.admin_panel_manage_questions_saved")
+                await message.reply_text(texts.dm_admin_questions_cancelled)
         finally:
-            context.user_data.pop("pending_question_edit", None)
+            if action in {"edit", "add", "import", "delete", "reset"}:
+                context.user_data.pop("pending_question_edit", None)
 
-    async def _process_admin_promote_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def _handle_question_edit(
+        self,
+        payload: str,
+        pending: Dict[str, Any],
+        language_code: str | None,
+        texts: TextPack,
+        message,
+    ) -> None:
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        try:
+            definition = ApplicationQuestionDefinition.from_dict(data)
+        except Exception:
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        original_id = str(pending.get("question_id") or "")
+        if not definition.question_id:
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        if original_id and definition.question_id != original_id:
+            await self.storage.delete_application_question_definition(
+                original_id,
+                language_code=language_code,
+            )
+
+        await self.storage.upsert_application_question_definition(
+            definition,
+            language_code=language_code,
+        )
+        label = definition.title or definition.prompt or definition.question_id
+        await message.reply_text(texts.dm_admin_questions_saved.format(label=label))
+        await self.analytics.record("dm.admin_panel_manage_questions_saved")
+
+    async def _handle_question_add(
+        self,
+        payload: str,
+        language_code: str | None,
+        texts: TextPack,
+        message,
+    ) -> None:
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        try:
+            definition = ApplicationQuestionDefinition.from_dict(data)
+        except Exception:
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        if not definition.question_id:
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        await self.storage.upsert_application_question_definition(
+            definition,
+            language_code=language_code,
+        )
+        label = definition.title or definition.prompt or definition.question_id
+        await message.reply_text(texts.dm_admin_questions_saved.format(label=label))
+        await self.analytics.record("dm.admin_panel_manage_questions_saved")
+
+    async def _handle_question_import(
+        self,
+        payload: str,
+        language_code: str | None,
+        texts: TextPack,
+        message,
+    ) -> None:
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        if not isinstance(data, list):
+            await message.reply_text(texts.dm_admin_questions_invalid_payload)
+            return
+
+        definitions = []
+        for entry in data:
+            if not isinstance(entry, dict):
+                await message.reply_text(texts.dm_admin_questions_invalid_payload)
+                return
+            try:
+                definitions.append(ApplicationQuestionDefinition.from_dict(entry))
+            except Exception:
+                await message.reply_text(texts.dm_admin_questions_invalid_payload)
+                return
+
+        await self.storage.import_application_form(
+            definitions, language_code=language_code
+        )
+        await message.reply_text(
+            texts.dm_admin_questions_import_success.format(count=len(definitions))
+        )
+        await self.analytics.record("dm.admin_panel_manage_questions_saved")
+
+    async def _handle_question_delete(
+        self,
+        payload: str,
+        pending: Dict[str, Any],
+        language_code: str | None,
+        texts: TextPack,
+        message,
+    ) -> None:
+        confirm_keyword = getattr(
+            texts, "dm_admin_questions_delete_keyword", "confirm"
+        ).casefold()
+        if payload.casefold() != confirm_keyword:
+            await message.reply_text(texts.dm_admin_questions_cancelled)
+            return
+
+        question_id = str(pending.get("question_id") or "")
+        if not question_id:
+            await message.reply_text(texts.dm_admin_questions_cancelled)
+            return
+
+        deleted = await self.storage.delete_application_question_definition(
+            question_id,
+            language_code=language_code,
+        )
+        if deleted:
+            await message.reply_text(texts.dm_admin_questions_deleted)
+            await self.analytics.record("dm.admin_panel_manage_questions_saved")
+        else:
+            await message.reply_text(texts.dm_admin_questions_cancelled)
+
+    async def _handle_question_reset(
+        self,
+        payload: str,
+        language_code: str | None,
+        texts: TextPack,
+        message,
+    ) -> None:
+        reset_keyword = texts.dm_admin_questions_reset_keyword.casefold()
+        if payload.casefold() != reset_keyword:
+            await message.reply_text(texts.dm_admin_questions_cancelled)
+            return
+
+        await self.storage.reset_application_form(language_code=language_code)
+        await message.reply_text(texts.dm_admin_questions_reset_language_success)
+        await self.analytics.record("dm.admin_panel_manage_questions_saved")
+
+    async def _process_admin_promote_response(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         message = update.message
         user = update.effective_user
         chat = update.effective_chat
@@ -713,13 +1088,16 @@ class DMHandlers:
         if added:
             await chat.send_message(texts.dm_admin_added.format(user_id=target_user_id))
         else:
-            await chat.send_message(texts.dm_already_admin.format(user_id=target_user_id))
+            await chat.send_message(
+                texts.dm_already_admin.format(user_id=target_user_id)
+            )
 
         context.user_data.pop("pending_admin_action", None)
         await self.analytics.record("dm.admin_panel_promote_completed")
 
-
-    async def _process_admin_demote_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def _process_admin_demote_response(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         message = update.message
         user = update.effective_user
         chat = update.effective_chat
@@ -740,21 +1118,26 @@ class DMHandlers:
 
         removed = await self.storage.remove_admin(target_user_id)
         if removed:
-            await chat.send_message(texts.dm_admin_removed.format(user_id=target_user_id))
+            await chat.send_message(
+                texts.dm_admin_removed.format(user_id=target_user_id)
+            )
         else:
             await chat.send_message(texts.dm_not_admin.format(user_id=target_user_id))
 
         context.user_data.pop("pending_admin_action", None)
         await self.analytics.record("dm.admin_panel_demote_completed")
 
-
-    async def _notify_user(self, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str) -> None:
+    async def _notify_user(
+        self, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str
+    ) -> None:
         try:
             await context.bot.send_message(chat_id=user_id, text=text)
         except Exception as exc:
             LOGGER.error("Failed to notify user %s: %s", user_id, exc)
 
-    async def list_admins(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def list_admins(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         chat = update.effective_chat
         if chat is None:
             return
@@ -766,7 +1149,9 @@ class DMHandlers:
             return
         await chat.send_message(admins_text, parse_mode=ParseMode.HTML)
 
-    async def promote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def promote_admin(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         if not await self._check_owner(update):
             return
         chat = update.effective_chat
@@ -788,7 +1173,9 @@ class DMHandlers:
         else:
             await chat.send_message(texts.dm_already_admin.format(user_id=user_id))
 
-    async def demote_admin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def demote_admin(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         if not await self._check_owner(update):
             return
         chat = update.effective_chat
@@ -827,11 +1214,15 @@ class DMHandlers:
         if user is None or chat is None:
             return
         texts = self._get_texts(context, getattr(user, "language_code", None))
-        text = self._render_status_text(self.storage.get_application_status(user.id), texts)
+        text = self._render_status_text(
+            self.storage.get_application_status(user.id), texts
+        )
         await chat.send_message(text, parse_mode=ParseMode.HTML)
         await self.analytics.record("dm.status_requested")
 
-    async def show_status_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def show_status_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -843,11 +1234,15 @@ class DMHandlers:
         if message is None:
             return
         texts = self._get_texts(context, getattr(user, "language_code", None))
-        text = self._render_status_text(self.storage.get_application_status(user.id), texts)
+        text = self._render_status_text(
+            self.storage.get_application_status(user.id), texts
+        )
         await message.chat.send_message(text, parse_mode=ParseMode.HTML)
         await self.analytics.record("dm.status_requested")
 
-    async def withdraw(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def withdraw(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         user = update.effective_user
         chat = update.effective_chat
         if user is None or chat is None:
@@ -863,7 +1258,9 @@ class DMHandlers:
             await chat.send_message(texts.dm_withdraw_not_found)
             await self.analytics.record("dm.withdraw_missing")
 
-    async def handle_withdraw_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_withdraw_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -885,7 +1282,9 @@ class DMHandlers:
             await message.chat.send_message(texts.dm_withdraw_not_found)
             await self.analytics.record("dm.withdraw_missing")
 
-    async def show_language_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def show_language_menu(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -894,15 +1293,25 @@ class DMHandlers:
         message = query.message
         if message is None:
             return
-        texts = self._get_texts(context, getattr(user, "language_code", None) if user else None)
-        active = context.user_data.get("preferred_language") if isinstance(context.user_data, dict) else None
+        texts = self._get_texts(
+            context, getattr(user, "language_code", None) if user else None
+        )
+        active = (
+            context.user_data.get("preferred_language")
+            if isinstance(context.user_data, dict)
+            else None
+        )
         await message.edit_text(
             text=texts.dm_language_menu_title,
-            reply_markup=language_options_keyboard(active if isinstance(active, str) else None, texts),
+            reply_markup=language_options_keyboard(
+                active if isinstance(active, str) else None, texts
+            ),
         )
         await self.analytics.record("dm.language_menu_opened")
 
-    async def close_language_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def close_language_menu(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -911,7 +1320,9 @@ class DMHandlers:
         user = query.from_user
         if message is None:
             return
-        texts = self._get_texts(context, getattr(user, "language_code", None) if user else None)
+        texts = self._get_texts(
+            context, getattr(user, "language_code", None) if user else None
+        )
         is_admin = self._is_admin(user.id) if user else False
         await message.edit_text(
             text=self._build_welcome_text(texts),
@@ -924,7 +1335,9 @@ class DMHandlers:
         )
         await self.analytics.record("dm.language_menu_closed")
 
-    async def set_language_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def set_language_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         query = update.callback_query
         if not query:
             return
@@ -1065,14 +1478,18 @@ class DMHandlers:
                 return url
         return None
 
-    def _render_application_text(self, user_id: int, texts: TextPack | None = None) -> str:
+    def _render_application_text(
+        self, user_id: int, texts: TextPack | None = None
+    ) -> str:
         application = self.storage.get_application(user_id)
         text_pack = texts or get_default_text_pack()
         if not application:
             return text_pack.dm_no_pending
         return self._format_application_entry(application, text_pack)
 
-    def _format_application_entry(self, application: Application, texts: TextPack) -> str:
+    def _format_application_entry(
+        self, application: Application, texts: TextPack
+    ) -> str:
         full_name = escape(str(application.full_name))
         username = application.username
         if username:
@@ -1091,7 +1508,9 @@ class DMHandlers:
             created_at=created_at,
         )
 
-    def _render_status_text(self, status: ApplicationHistoryEntry | None, texts: TextPack | None = None) -> str:
+    def _render_status_text(
+        self, status: ApplicationHistoryEntry | None, texts: TextPack | None = None
+    ) -> str:
         text_pack = texts or get_default_text_pack()
         if not status:
             return text_pack.dm_status_none
@@ -1105,7 +1524,9 @@ class DMHandlers:
 
         status_label = status_map.get(status.status)
         if not status_label:
-            status_label = text_pack.dm_status_unknown.format(status=escape(status.status))
+            status_label = text_pack.dm_status_unknown.format(
+                status=escape(status.status)
+            )
 
         updated_at = escape(status.updated_at)
         last_updated_label = text_pack.dm_status_last_updated_label
@@ -1136,7 +1557,9 @@ class DMHandlers:
         if isinstance(user_data, dict):
             maybe_stored = user_data.get("preferred_language")
             if isinstance(maybe_stored, str):
-                normalised_stored = normalize_language_code(maybe_stored) or maybe_stored
+                normalised_stored = (
+                    normalize_language_code(maybe_stored) or maybe_stored
+                )
                 if normalised_stored in AVAILABLE_LANGUAGE_CODES:
                     stored_language = normalised_stored
                     stored_pack = get_text_pack(stored_language)
@@ -1259,185 +1682,202 @@ class DMHandlers:
         if message is None:
             return False
 
-        step = flow_state.get("step")
         responses = flow_state.setdefault("answers", [])
+        answered_values: Dict[str, str] = flow_state.setdefault("answered_values", {})
+        form_definitions = parse_form(flow_state.get("form", []))
 
-        if step == "role":
-            match = self._match_role(answer, texts)
-            if not match:
+        current_question_id = flow_state.get("pending_question_id")
+        if not current_question_id:
+            next_question = self._select_next_question(
+                form_definitions, answered_values
+            )
+            if next_question is None:
+                await message.reply_text(texts.dm_application_no_questions)
+                return True
+            flow_state["pending_question_id"] = next_question.question_id
+            await message.reply_text(next_question.prompt)
+            return False
+
+        current_question = self._find_question(form_definitions, current_question_id)
+        if current_question is None:
+            next_question = self._select_next_question(
+                form_definitions, answered_values
+            )
+            if next_question is None:
+                await message.reply_text(texts.dm_application_no_questions)
+                return True
+            flow_state["pending_question_id"] = next_question.question_id
+            await message.reply_text(next_question.prompt)
+            return False
+
+        provided_answer = answer.strip()
+        canonical_value: Optional[str]
+        display_answer: str
+
+        if current_question.kind == "choice":
+            match = self._match_option_answer(current_question, provided_answer)
+            if match is None:
+                options = ", ".join(self._format_option_labels(current_question))
                 await message.reply_text(
-                    texts.dm_application_invalid_choice.format(
-                        options=", ".join(self._role_labels(texts))
-                    )
+                    texts.dm_application_invalid_choice.format(options=options)
                 )
                 return False
-
-            role_key, provided_answer = match
-            role_prompt = self._resolve_question_prompt(
-                "role_prompt",
-                texts,
-                language_code,
-            )
-            responses.append(
-                {
-                    "question_id": "role",
-                    "question": role_prompt,
-                    "answer": provided_answer,
-                }
-            )
-            flow_state["role_key"] = role_key
-            prompt = self._resolve_question_prompt(
-                f"followup_{role_key}",
-                texts,
-                language_code,
-            )
-            if prompt:
-                flow_state["step"] = "followup"
-                await message.reply_text(prompt)
-            else:
-                flow_state["step"] = "goals"
-                goals_prompt = self._resolve_question_prompt(
-                    "goals_prompt",
-                    texts,
-                    language_code,
-                )
-                await message.reply_text(goals_prompt)
-            return False
-
-        if step == "followup":
-            role_key = flow_state.get("role_key")
-            question = self._resolve_question_prompt(
-                f"followup_{role_key}",
-                texts,
-                language_code,
-            )
-            if question:
-                responses.append(
-                    {
-                        "question_id": f"followup_{role_key}",
-                        "question": question,
-                        "answer": answer,
-                    }
-                )
-            flow_state["step"] = "goals"
-            goals_prompt = self._resolve_question_prompt(
-                "goals_prompt",
-                texts,
-                language_code,
-            )
-            await message.reply_text(goals_prompt)
-            return False
-
-        if step == "goals":
-            goals_prompt = self._resolve_question_prompt(
-                "goals_prompt",
-                texts,
-                language_code,
-            )
-            responses.append(
-                {
-                    "question_id": "goals",
-                    "question": goals_prompt,
-                    "answer": answer,
-                }
-            )
-
-            flow_state["step"] = "availability"
-            availability_prompt = self._resolve_question_prompt(
-                "availability_prompt",
-                texts,
-                language_code,
-            )
-            await message.reply_text(availability_prompt)
-            return False
-
-        if step == "availability":
-            availability_prompt = self._resolve_question_prompt(
-                "availability_prompt",
-                texts,
-                language_code,
-            )
-            responses.append(
-                {
-                    "question_id": "availability",
-                    "question": availability_prompt,
-                    "answer": answer,
-                }
-            )
-
-            application_responses = [
-                ApplicationResponse(
-                    question_id=item["question_id"],
-                    question=item["question"],
-                    answer=item["answer"],
-                )
-                for item in responses
-            ]
-            summary_text = self._format_application_summary(application_responses, texts)
-            aggregated_answer = self._collapse_responses(application_responses)
-
-            user = update.effective_user
-            if user is None:
+            canonical_value, display_answer = match
+        else:
+            if current_question.required and not provided_answer:
+                await message.reply_text(texts.dm_application_required)
                 return False
+            canonical_value = provided_answer
+            display_answer = provided_answer
 
-            try:
-                async with self.analytics.track_time("dm.application_store"):
-                    success = await self.storage.add_application(
-                        user_id=user.id,
-                        full_name=user.full_name or user.username or str(user.id),
-                        username=getattr(user, "username", None),
-                        answer=aggregated_answer,
-                        language_code=context.user_data.get("preferred_language"),
-                        responses=application_responses,
-                    )
-            except Exception as exc:
-                LOGGER.error("Failed to persist application for %s: %s", user.id, exc)
-                await self.analytics.record("dm.application_error")
-                await message.reply_text(texts.error_generic)
-                return True
+        responses.append(
+            {
+                "question_id": current_question.question_id,
+                "question": current_question.prompt,
+                "answer": display_answer,
+            }
+        )
+        answered_values[current_question.question_id] = canonical_value or ""
 
-            if not success:
-                LOGGER.warning("Duplicate application prevented for user %s", user.id)
-                await message.reply_text(texts.dm_application_duplicate)
-                return True
+        next_question = self._select_next_question(form_definitions, answered_values)
+        if next_question is not None:
+            flow_state["pending_question_id"] = next_question.question_id
+            await message.reply_text(next_question.prompt)
+            return False
 
-            await message.reply_text(summary_text, parse_mode=ParseMode.HTML)
-            await message.reply_text(texts.dm_application_received)
-            await self.analytics.record("dm.application_submitted")
+        flow_state["pending_question_id"] = None
+        application_responses = [
+            ApplicationResponse(
+                question_id=item["question_id"],
+                question=item["question"],
+                answer=item["answer"],
+            )
+            for item in responses
+        ]
+        summary_text = self._format_application_summary(application_responses, texts)
+        aggregated_answer = self._collapse_responses(application_responses)
 
-            review_chat_id = context.bot_data.get("review_chat_id")
-            if review_chat_id and context.application:
-                context.application.create_task(
-                    context.bot.send_message(
-                        chat_id=review_chat_id,
-                        text=self._render_application_text(user.id),
-                        parse_mode=ParseMode.HTML,
-                        reply_markup=application_review_keyboard(
-                            user.id, get_default_text_pack()
-                        ),
-                    )
+        user = update.effective_user
+        if user is None:
+            return False
+
+        try:
+            async with self.analytics.track_time("dm.application_store"):
+                success = await self.storage.add_application(
+                    user_id=user.id,
+                    full_name=user.full_name or user.username or str(user.id),
+                    username=getattr(user, "username", None),
+                    answer=aggregated_answer,
+                    language_code=context.user_data.get("preferred_language"),
+                    responses=application_responses,
                 )
+        except Exception as exc:
+            LOGGER.error("Failed to persist application for %s: %s", user.id, exc)
+            await self.analytics.record("dm.application_error")
+            await message.reply_text(texts.error_generic)
             return True
 
-        await message.reply_text(texts.error_generic)
+        if not success:
+            LOGGER.warning("Duplicate application prevented for user %s", user.id)
+            await message.reply_text(texts.dm_application_duplicate)
+            return True
+
+        await message.reply_text(summary_text, parse_mode=ParseMode.HTML)
+        await message.reply_text(texts.dm_application_received)
+        await self.analytics.record("dm.application_submitted")
+
+        review_chat_id = context.bot_data.get("review_chat_id")
+        if review_chat_id and context.application:
+            context.application.create_task(
+                context.bot.send_message(
+                    chat_id=review_chat_id,
+                    text=self._render_application_text(user.id),
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=application_review_keyboard(
+                        user.id, get_default_text_pack()
+                    ),
+                )
+            )
         return True
 
-    def _role_labels(self, texts: TextPack) -> List[str]:
-        labels: List[str] = []
-        for synonyms in texts.dm_application_role_options.values():
-            if synonyms:
-                labels.append(synonyms[0])
-        return labels
+    def _get_application_form(
+        self, language_code: str | None
+    ) -> List[ApplicationQuestionDefinition]:
+        getter = getattr(self.storage, "get_application_form", None)
+        if not callable(getter):
+            return []
+        try:
+            definitions = getter(language_code)
+        except TypeError:
+            definitions = getter()
+        except Exception:  # pragma: no cover - defensive logging
+            LOGGER.exception("Failed to load application form definitions")
+            return []
 
-    def _match_role(self, answer: str, texts: TextPack) -> tuple[str, str] | None:
-        normalized = answer.casefold()
-        for role, synonyms in texts.dm_application_role_options.items():
-            for synonym in synonyms:
-                if normalized == synonym.casefold():
-                    return role, synonym
+        result: List[ApplicationQuestionDefinition] = []
+        for item in definitions or []:
+            if isinstance(item, ApplicationQuestionDefinition):
+                result.append(item)
+            elif isinstance(item, dict):
+                try:
+                    result.append(ApplicationQuestionDefinition.from_dict(item))
+                except Exception:  # pragma: no cover - defensive logging
+                    LOGGER.warning("Invalid application question definition skipped")
+        return result
+
+    def _find_question(
+        self,
+        definitions: List[ApplicationQuestionDefinition],
+        question_id: str,
+    ) -> ApplicationQuestionDefinition | None:
+        for definition in definitions:
+            if definition.question_id == question_id:
+                return definition
         return None
 
-    def _format_application_answers(self, application: Application, texts: TextPack) -> str:
+    def _select_next_question(
+        self,
+        definitions: List[ApplicationQuestionDefinition],
+        answered: Dict[str, str],
+    ) -> ApplicationQuestionDefinition | None:
+        for definition in definitions:
+            if definition.question_id in answered:
+                continue
+            if definition.depends_on:
+                dependency_value = answered.get(definition.depends_on)
+                if dependency_value is None:
+                    continue
+                if (
+                    definition.depends_value
+                    and dependency_value != definition.depends_value
+                ):
+                    continue
+            return definition
+        return None
+
+    def _format_option_labels(
+        self, question: ApplicationQuestionDefinition
+    ) -> List[str]:
+        labels: List[str] = []
+        for option in question.options:
+            label = option.label or option.value
+            labels.append(label)
+        return labels
+
+    def _match_option_answer(
+        self, question: ApplicationQuestionDefinition, answer: str
+    ) -> tuple[str, str] | None:
+        if not answer:
+            return None
+        for option in question.options:
+            if option.matches(answer):
+                label = option.label or option.value
+                return option.value, label
+        return None
+
+    def _format_application_answers(
+        self, application: Application, texts: TextPack
+    ) -> str:
         if application.responses:
             lines = [
                 texts.dm_application_summary_item.format(
@@ -1492,7 +1932,9 @@ class DMHandlers:
         if languages:
             language_lines = [
                 f"• {escape(str(code))}: {count}"
-                for code, count in sorted(languages.items(), key=lambda item: (-int(item[1]), str(item[0])))
+                for code, count in sorted(
+                    languages.items(), key=lambda item: (-int(item[1]), str(item[0]))
+                )
             ]
             languages_block = texts.dm_admin_panel_insights_languages.format(
                 languages="\n".join(language_lines)
@@ -1507,7 +1949,9 @@ class DMHandlers:
                 user_id = escape(str(entry.get("user_id", "—")))
                 status = escape(str(entry.get("status", "")))
                 updated_at = escape(str(entry.get("updated_at", "")))
-                recent_lines.append(f"• <code>{user_id}</code> – {status} ({updated_at})")
+                recent_lines.append(
+                    f"• <code>{user_id}</code> – {status} ({updated_at})"
+                )
             recent_block = texts.dm_admin_panel_insights_recent.format(
                 items="\n".join(recent_lines)
             )
@@ -1522,4 +1966,3 @@ class DMHandlers:
                 recent_block,
             ]
         )
-
