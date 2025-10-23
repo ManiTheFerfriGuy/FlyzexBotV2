@@ -163,6 +163,29 @@ def test_group_snapshot(tmp_path: Path) -> None:
     asyncio.run(runner())
 
 
+def test_group_snapshot_persists_last_activity(tmp_path: Path) -> None:
+    storage_path = tmp_path / "store.json"
+    storage = Storage(storage_path)
+
+    async def setup_snapshot() -> str:
+        await storage.load()
+        await storage.add_xp(300, 42, 10)
+        snapshot = storage.get_group_snapshot(300)
+        assert snapshot["last_activity"]
+        return snapshot["last_activity"]
+
+    last_activity_before_reload = asyncio.run(setup_snapshot())
+
+    reloaded_storage = Storage(storage_path)
+
+    async def verify_snapshot() -> None:
+        await reloaded_storage.load()
+        snapshot = reloaded_storage.get_group_snapshot(300)
+        assert snapshot["last_activity"] == last_activity_before_reload
+
+    asyncio.run(verify_snapshot())
+
+
 def test_application_question_overrides(tmp_path: Path) -> None:
     storage = Storage(tmp_path / "store.json")
 
