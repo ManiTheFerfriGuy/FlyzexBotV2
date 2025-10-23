@@ -27,21 +27,26 @@ class GroupHandlers:
     def __init__(
         self,
         storage: Storage,
-        xp_reward: int,
+        xp_per_character: float,
+        xp_message_limit: int,
         xp_limit: int,
         cups_limit: int,
         milestone_interval: int = 5,
         xp_notification_cooldown: int = 180,
+        message_cooldown_seconds: float = 20.0,
         analytics: AnalyticsTracker | NullAnalytics | None = None,
     ) -> None:
         self.storage = storage
-        self.xp_reward = xp_reward
+        self.xp_per_character = max(0.0, xp_per_character)
+        self.xp_message_limit = max(0, xp_message_limit)
+        self.xp_message_cooldown = max(0.0, message_cooldown_seconds)
         self.xp_limit = xp_limit
         self.cups_limit = cups_limit
         self.milestone_interval = milestone_interval
         self.analytics = analytics or NullAnalytics()
         self.xp_notification_cooldown = max(0, xp_notification_cooldown)
         self._xp_notifications: Dict[Tuple[int, int], float] = {}
+        self._message_cooldowns: Dict[Tuple[int, int], float] = {}
         self.personal_panel_cooldown = 30.0
 
     def build_handlers(self) -> list:
@@ -72,6 +77,28 @@ class GroupHandlers:
             return
         if message.text and message.text.startswith("/"):
             return
+        if self.xp_per_character <= 0 or self.xp_message_limit <= 0:
+            return
+
+        content = message.text or message.caption or ""
+        char_count = len(content)
+        if char_count <= 0:
+            return
+
+        xp_amount = int(char_count * self.xp_per_character)
+        if xp_amount <= 0:
+            return
+        if self.xp_message_limit > 0:
+            xp_amount = min(xp_amount, self.xp_message_limit)
+
+        key = (update.effective_chat.id, update.effective_user.id)
+        if self.xp_message_cooldown:
+            now = time.monotonic()
+            last_award = self._message_cooldowns.get(key)
+            if last_award and now - last_award < self.xp_message_cooldown:
+                await self.analytics.record("group.activity_skipped_cooldown")
+                return
+
         texts = self._get_texts(context, getattr(update.effective_user, "language_code", None))
         new_score: int | None = None
         try:
@@ -79,7 +106,7 @@ class GroupHandlers:
                 new_score = await self.storage.add_xp(
                     chat_id=update.effective_chat.id,
                     user_id=update.effective_user.id,
-                    amount=self.xp_reward,
+                    amount=xp_amount,
                     full_name=getattr(update.effective_user, "full_name", None),
                     username=getattr(update.effective_user, "username", None),
                 )
@@ -87,14 +114,22 @@ class GroupHandlers:
             LOGGER.error("Failed to update XP for %s: %s", update.effective_user.id, exc)
             await self.analytics.record("group.activity_error")
             return
-        if self.xp_reward <= 0 or self.milestone_interval <= 0:
+        if new_score is None:
             await self.analytics.record("group.activity_tracked")
             return
-        milestone_score = self.xp_reward * self.milestone_interval
+
+        if self.xp_message_cooldown:
+            self._message_cooldowns[key] = time.monotonic()
+
+        if self.milestone_interval <= 0:
+            await self.analytics.record("group.activity_tracked")
+            return
+
+        milestone_base = self.xp_message_limit if self.xp_message_limit > 0 else xp_amount
+        milestone_score = milestone_base * self.milestone_interval
         if milestone_score > 0 and new_score % milestone_score == 0:
             should_notify = True
             if self.xp_notification_cooldown:
-                key = (update.effective_chat.id, update.effective_user.id)
                 last_tick = self._xp_notifications.get(key, 0.0)
                 now = time.monotonic()
                 if now - last_tick < self.xp_notification_cooldown:

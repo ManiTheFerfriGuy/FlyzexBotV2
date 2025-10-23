@@ -111,7 +111,13 @@ async def test_group_leaderboards_escape_user_generated_content(
     expected_separator: str,
 ) -> None:
     storage = GroupStorageStub()
-    handlers = GroupHandlers(storage, xp_reward=5, xp_limit=5, cups_limit=5)
+    handlers = GroupHandlers(
+        storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=5,
+        cups_limit=5,
+    )
     monkeypatch.setattr(
         handlers,
         "_resolve_leaderboard_names",

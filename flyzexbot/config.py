@@ -18,9 +18,17 @@ class TelegramConfig:
 
 @dataclass
 class XPConfig:
-    message_reward: int
+    message_character_reward: float
+    message_reward_limit: int
+    message_reward_cooldown: float
     leaderboard_size: int
     milestone_interval: int = 5
+
+    @property
+    def message_reward(self) -> float:
+        """Backward-compatible alias for legacy constant XP reward."""
+
+        return self.message_character_reward
 
 
 @dataclass
@@ -101,10 +109,17 @@ class Settings:
             application_review_chat=data["telegram"].get("application_review_chat"),
         )
 
+        xp_cfg = data["xp"]
+        character_reward = xp_cfg.get("message_character_reward")
+        if character_reward is None:
+            character_reward = xp_cfg.get("message_reward", 1)
+
         xp = XPConfig(
-            message_reward=int(data["xp"]["message_reward"]),
-            leaderboard_size=int(data["xp"]["leaderboard_size"]),
-            milestone_interval=int(data["xp"].get("milestone_interval", 5)),
+            message_character_reward=float(character_reward),
+            message_reward_limit=int(xp_cfg.get("message_reward_limit", 20)),
+            message_reward_cooldown=float(xp_cfg.get("message_reward_cooldown", 20.0)),
+            leaderboard_size=int(xp_cfg["leaderboard_size"]),
+            milestone_interval=int(xp_cfg.get("milestone_interval", 5)),
         )
 
         cups = CupConfig(

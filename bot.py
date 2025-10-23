@@ -64,10 +64,12 @@ async def build_application(settings: Settings) -> None:
     )
     group_handlers = GroupHandlers(
         storage=storage,
-        xp_reward=settings.xp.message_reward,
+        xp_per_character=settings.xp.message_character_reward,
+        xp_message_limit=settings.xp.message_reward_limit,
         xp_limit=settings.xp.leaderboard_size,
         cups_limit=settings.cups.leaderboard_size,
         milestone_interval=settings.xp.milestone_interval,
+        message_cooldown_seconds=settings.xp.message_reward_cooldown,
         analytics=analytics,
     )
 
