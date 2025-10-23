@@ -235,6 +235,30 @@ def test_application_form_customisation(tmp_path: Path) -> None:
         default_form = storage.get_application_form("fa")
         assert default_form
 
+        role_definition = default_form[0]
+        custom_role_prompt = "Custom role prompt"
+        role_override = ApplicationQuestionDefinition(
+            question_id=role_definition.question_id,
+            prompt=custom_role_prompt,
+            kind=role_definition.kind,
+            order=role_definition.order,
+            required=role_definition.required,
+            title=role_definition.title,
+            options=role_definition.options,
+            depends_on=role_definition.depends_on,
+            depends_value=role_definition.depends_value,
+        )
+        await storage.upsert_application_question_definition(
+            role_override, language_code="fa"
+        )
+
+        edited_form = storage.get_application_form("fa")
+        assert [q.question_id for q in edited_form] == [
+            q.question_id for q in default_form
+        ]
+        role_entries = [q for q in edited_form if q.question_id == role_definition.question_id]
+        assert role_entries and role_entries[0].prompt == custom_role_prompt
+
         new_definition = ApplicationQuestionDefinition(
             question_id="background",
             prompt="Tell us about yourself",

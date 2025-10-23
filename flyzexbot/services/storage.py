@@ -623,6 +623,8 @@ class Storage:
         language_key = self._normalise_language_key(language_code)
         async with self._lock:
             current = parse_form(self._state.application_form.get(language_key, []))
+            if not current:
+                current = self._load_application_form_definitions(language_key)
             replaced = False
             for index, existing in enumerate(current):
                 if existing.question_id == definition.question_id:
