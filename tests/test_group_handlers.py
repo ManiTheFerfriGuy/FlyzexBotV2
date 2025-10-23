@@ -52,7 +52,8 @@ def test_add_cup_accepts_single_argument_string() -> None:
     storage = SimpleNamespace(add_cup=AsyncMock())
     handler = GroupHandlers(
         storage=storage,
-        xp_reward=10,
+        xp_per_character=1,
+        xp_message_limit=20,
         xp_limit=100,
         cups_limit=10,
     )
@@ -73,7 +74,8 @@ def test_track_activity_handles_zero_reward() -> None:
     storage = SimpleNamespace(add_xp=AsyncMock(return_value=0))
     handler = GroupHandlers(
         storage=storage,
-        xp_reward=0,
+        xp_per_character=0,
+        xp_message_limit=20,
         xp_limit=100,
         cups_limit=10,
     )
@@ -90,20 +92,19 @@ def test_track_activity_handles_zero_reward() -> None:
 
     asyncio.run(handler.track_activity(update, context))
 
-    storage.add_xp.assert_awaited_once()
-    assert storage.add_xp.await_args.kwargs == {
-        "chat_id": chat.id,
-        "user_id": user.id,
-        "amount": 0,
-        "full_name": user.full_name,
-        "username": user.username,
-    }
+    storage.add_xp.assert_not_awaited()
     assert message.replies == []
 
 
 def test_command_help_includes_admin_section_for_admins() -> None:
     storage = SimpleNamespace(get_user_xp=Mock(return_value=None), get_group_snapshot=Mock(return_value={}))
-    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler = GroupHandlers(
+        storage=storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=10,
+        cups_limit=5,
+    )
     handler._is_admin = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
     chat = DummyChat()
@@ -122,7 +123,13 @@ def test_command_help_includes_admin_section_for_admins() -> None:
 
 def test_command_help_hides_admin_section_for_members() -> None:
     storage = SimpleNamespace(get_user_xp=Mock(return_value=None), get_group_snapshot=Mock(return_value={}))
-    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler = GroupHandlers(
+        storage=storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=10,
+        cups_limit=5,
+    )
     handler._is_admin = AsyncMock(return_value=False)  # type: ignore[method-assign]
 
     chat = DummyChat()
@@ -144,7 +151,13 @@ def test_command_myxp_reports_total() -> None:
         get_user_xp=Mock(return_value=128),
         get_group_snapshot=Mock(return_value={}),
     )
-    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler = GroupHandlers(
+        storage=storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=10,
+        cups_limit=5,
+    )
 
     chat = DummyChat()
     user = DummyUser()
@@ -176,7 +189,13 @@ def test_show_panel_escapes_snapshot_content() -> None:
         "last_activity": "2024/05/20 · 10:00 UTC",
     }
     storage = SimpleNamespace(get_group_snapshot=Mock(return_value=snapshot))
-    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler = GroupHandlers(
+        storage=storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=10,
+        cups_limit=5,
+    )
     handler._is_admin = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
     chat = SimpleNamespace(id=1, title="Guild <One>")
@@ -195,7 +214,13 @@ def test_show_panel_escapes_snapshot_content() -> None:
 
 def test_compose_group_panel_menu_includes_section_text() -> None:
     storage = SimpleNamespace(get_group_snapshot=Mock(return_value={}))
-    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=10, cups_limit=5)
+    handler = GroupHandlers(
+        storage=storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=10,
+        cups_limit=5,
+    )
 
     chat = SimpleNamespace(id=1, title="Guild")
     text, markup = handler._compose_group_panel(chat, PERSIAN_TEXTS, menu="xp")
@@ -212,7 +237,13 @@ def test_keyword_xp_triggers_dm_and_summary() -> None:
         get_user_xp_rank=Mock(return_value=(1, 5)),
         get_cups=Mock(return_value=[]),
     )
-    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=5, cups_limit=5)
+    handler = GroupHandlers(
+        storage=storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=5,
+        cups_limit=5,
+    )
 
     message = DummyMessage("XP")
     chat = DummyChat()
@@ -245,7 +276,13 @@ def test_keyword_invalid_shows_fallback() -> None:
         get_user_xp_rank=Mock(return_value=(None, 0)),
         get_cups=Mock(return_value=[]),
     )
-    handler = GroupHandlers(storage=storage, xp_reward=5, xp_limit=5, cups_limit=5)
+    handler = GroupHandlers(
+        storage=storage,
+        xp_per_character=1,
+        xp_message_limit=20,
+        xp_limit=5,
+        cups_limit=5,
+    )
 
     message = DummyMessage("XP stats")
     chat = DummyChat()
