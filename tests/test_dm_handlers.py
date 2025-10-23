@@ -171,7 +171,7 @@ def test_multi_step_application_flow_collects_responses() -> None:
     assert context.user_data.get("application_flow") == {
         "step": "role",
         "answers": [],
-        "language_code": "en",
+        "language_code": "fa",
     }
 
     first_message = DummyIncomingMessage("Trader")
@@ -182,7 +182,7 @@ def test_multi_step_application_flow_collects_responses() -> None:
     )
 
     asyncio.run(handler.receive_application(first_update, context))
-    assert first_message.replies[-1] == ENGLISH_TEXTS.dm_application_followup_prompts["trader"]
+    assert first_message.replies[-1] == PERSIAN_TEXTS.dm_application_followup_prompts["trader"]
 
     second_message = DummyIncomingMessage("Market making")
     second_update = SimpleNamespace(
@@ -192,7 +192,7 @@ def test_multi_step_application_flow_collects_responses() -> None:
     )
 
     asyncio.run(handler.receive_application(second_update, context))
-    assert second_message.replies[-1] == ENGLISH_TEXTS.dm_application_goals_prompt
+    assert second_message.replies[-1] == PERSIAN_TEXTS.dm_application_goals_prompt
 
     third_message = DummyIncomingMessage("Build a stronger economy")
     third_update = SimpleNamespace(
@@ -202,7 +202,7 @@ def test_multi_step_application_flow_collects_responses() -> None:
     )
 
     asyncio.run(handler.receive_application(third_update, context))
-    assert third_message.replies[-1] == ENGLISH_TEXTS.dm_application_availability_prompt
+    assert third_message.replies[-1] == PERSIAN_TEXTS.dm_application_availability_prompt
 
     fourth_message = DummyIncomingMessage("Evenings and weekends")
     fourth_update = SimpleNamespace(
@@ -221,7 +221,7 @@ def test_multi_step_application_flow_collects_responses() -> None:
     responses = call_args["responses"]
     assert len(responses) == 4
     summary_reply = fourth_message.replies[-2]
-    assert ENGLISH_TEXTS.dm_application_summary_title in summary_reply
+    assert PERSIAN_TEXTS.dm_application_summary_title in summary_reply
     assert "Market making" in summary_reply
     assert "Build a stronger economy" in summary_reply
     assert "Evenings and weekends" in summary_reply
@@ -426,7 +426,7 @@ def test_promote_admin_invalid_identifier_english() -> None:
     asyncio.run(handler.promote_admin(update, context))
 
     storage.add_admin.assert_not_awaited()
-    assert chat.messages and chat.messages[-1]["text"] == ENGLISH_TEXTS.dm_admin_invalid_user_id
+    assert chat.messages and chat.messages[-1]["text"] == PERSIAN_TEXTS.dm_admin_invalid_user_id
 
 
 def test_withdraw_success() -> None:
@@ -542,8 +542,8 @@ def test_status_with_approved_history_english() -> None:
 
     assert chat.messages
     message = chat.messages[-1]["text"]
-    assert ENGLISH_TEXTS.dm_status_approved in message
-    assert context.user_data.get("preferred_language") == "en"
+    assert PERSIAN_TEXTS.dm_status_approved in message
+    assert context.user_data.get("preferred_language") == "fa"
 
 
 def test_handle_admin_panel_action_view_applications() -> None:
@@ -780,6 +780,7 @@ def test_process_question_edit_response_updates_storage() -> None:
         "language_code": "en",
         "label": ENGLISH_TEXTS.dm_admin_questions_goals_label,
     }
+    expected_label = context.user_data["pending_question_edit"]["label"]
 
     message = DummyIncomingMessage("Reach new heights")
     update = SimpleNamespace(
@@ -796,8 +797,8 @@ def test_process_question_edit_response_updates_storage() -> None:
     )
     assert not context.user_data.get("pending_question_edit")
     assert message.replies
-    assert ENGLISH_TEXTS.dm_admin_questions_success.format(
-        label=ENGLISH_TEXTS.dm_admin_questions_goals_label
+    assert PERSIAN_TEXTS.dm_admin_questions_success.format(
+        label=expected_label
     ) in message.replies[-1]
 
 
@@ -863,7 +864,7 @@ def test_admin_handles_note_for_approval() -> None:
     assert context.user_data.get("pending_review_note")
     assert message.edits
     prompt_text = message.edits[-1]["text"]
-    assert "SKIP" in prompt_text
+    assert PERSIAN_TEXTS.dm_application_note_skip_keyword in prompt_text
 
     note_message = DummyIncomingMessage("Welcome to the team!")
     update_note = SimpleNamespace(message=note_message, effective_user=admin_user)
@@ -883,7 +884,7 @@ def test_admin_handles_note_for_approval() -> None:
     assert ENGLISH_TEXTS.dm_application_note_label in send_kwargs["text"]
     edit_kwargs = context.bot.edit_message_text.await_args.kwargs
     assert "Welcome to the team!" in edit_kwargs["text"]
-    assert ENGLISH_TEXTS.dm_application_note_label in edit_kwargs["text"]
+    assert PERSIAN_TEXTS.dm_application_note_label in edit_kwargs["text"]
     assert "pending_review_note" not in context.user_data
 
 

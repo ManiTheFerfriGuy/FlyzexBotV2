@@ -8,8 +8,8 @@ from telegram.constants import ParseMode
 from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
                           MessageHandler, filters)
 
-from ..localization import (AVAILABLE_LANGUAGE_CODES, TextPack,
-                            get_default_text_pack, get_text_pack,
+from ..localization import (AVAILABLE_LANGUAGE_CODES, DEFAULT_LANGUAGE_CODE,
+                            TextPack, get_default_text_pack, get_text_pack,
                             normalize_language_code)
 from ..services.analytics import AnalyticsTracker, NullAnalytics
 from ..services.security import RateLimitGuard
@@ -1143,18 +1143,18 @@ class DMHandlers:
                     if normalised_stored != maybe_stored:
                         user_data["preferred_language"] = normalised_stored
 
-        normalised = normalize_language_code(language_code)
-        if normalised:
-            if stored_pack:
-                return stored_pack
-            if normalised in AVAILABLE_LANGUAGE_CODES and isinstance(user_data, dict):
-                user_data["preferred_language"] = normalised
-            return get_text_pack(normalised)
-
         if stored_pack:
             return stored_pack
 
-        return get_text_pack(None)
+        if isinstance(user_data, dict) and "preferred_language" not in user_data:
+            user_data["preferred_language"] = DEFAULT_LANGUAGE_CODE
+            return get_default_text_pack()
+
+        normalised = normalize_language_code(language_code)
+        if normalised and normalised in AVAILABLE_LANGUAGE_CODES:
+            return get_text_pack(normalised)
+
+        return get_default_text_pack()
 
     def _get_active_language_code(
         self,
@@ -1167,8 +1167,14 @@ class DMHandlers:
             if isinstance(maybe_stored, str):
                 stored = normalize_language_code(maybe_stored) or maybe_stored
 
+        if stored:
+            return stored
+
         requested = normalize_language_code(language_code) if language_code else None
-        return stored or requested
+        if requested:
+            return requested
+
+        return DEFAULT_LANGUAGE_CODE
 
     def _get_language_label(self, texts: TextPack, language_code: str | None) -> str:
         language_names = getattr(texts, "language_names", {})

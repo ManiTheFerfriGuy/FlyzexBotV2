@@ -12,7 +12,8 @@ from telegram.constants import ParseMode
 from telegram.ext import (CallbackQueryHandler, CommandHandler, ContextTypes,
                           MessageHandler, filters)
 
-from ..localization import (AVAILABLE_LANGUAGE_CODES, PERSIAN_TEXTS, TextPack,
+from ..localization import (AVAILABLE_LANGUAGE_CODES, DEFAULT_LANGUAGE_CODE,
+                            PERSIAN_TEXTS, TextPack, get_default_text_pack,
                             get_text_pack, normalize_language_code)
 from ..services.analytics import AnalyticsTracker, NullAnalytics
 from ..services.storage import Storage
@@ -1164,18 +1165,18 @@ class GroupHandlers:
                     if normalised_stored != maybe_stored:
                         chat_data["preferred_language"] = normalised_stored
 
-        normalised = normalize_language_code(language_code)
-        if normalised:
-            if stored_pack:
-                return stored_pack
-            if normalised in AVAILABLE_LANGUAGE_CODES and isinstance(chat_data, dict):
-                chat_data["preferred_language"] = normalised
-            return get_text_pack(normalised)
-
         if stored_pack:
             return stored_pack
 
-        return get_text_pack(None)
+        if isinstance(chat_data, dict) and "preferred_language" not in chat_data:
+            chat_data["preferred_language"] = DEFAULT_LANGUAGE_CODE
+            return get_default_text_pack()
+
+        normalised = normalize_language_code(language_code)
+        if normalised and normalised in AVAILABLE_LANGUAGE_CODES:
+            return get_text_pack(normalised)
+
+        return get_default_text_pack()
 
     async def _compose_xp_leaderboard(
         self,
