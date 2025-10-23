@@ -212,6 +212,7 @@ class StorageState:
                     "username": profile.get("username"),
                     "full_name": profile.get("full_name"),
                     "updated_at": profile.get("updated_at"),
+                    "updated_at_iso": profile.get("updated_at_iso"),
                     "last_chat": profile.get("last_chat"),
                     "chats": [str(chat) for chat in profile.get("chats", []) if chat],
                 }
