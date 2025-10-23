@@ -737,7 +737,7 @@ ENGLISH_TEXTS = TextPack(
     group_panel_menu_settings_help_button="Settings guide",
     error_generic="⚠️ Oops, something went wrong. Please try again.",
     glass_panel_caption=(
-        "<i>A cozy glassmorphism experience with soft blur and vibrant buttons to keep things welcoming.</i>"
+        "<i></i>"
     ),
     admin_list_header="👮‍♂️ Current admins:\n{admins}",
     dm_rate_limited="⏳ Easy there! Give it a moment before sending more requests.",
