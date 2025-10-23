@@ -1165,16 +1165,18 @@ class GroupHandlers:
                     if normalised_stored != maybe_stored:
                         chat_data["preferred_language"] = normalised_stored
 
+        normalised = normalize_language_code(language_code)
+        if normalised and normalised in AVAILABLE_LANGUAGE_CODES:
+            if isinstance(chat_data, dict):
+                chat_data["preferred_language"] = normalised
+            return get_text_pack(normalised)
+
         if stored_pack:
             return stored_pack
 
         if isinstance(chat_data, dict) and "preferred_language" not in chat_data:
             chat_data["preferred_language"] = DEFAULT_LANGUAGE_CODE
             return get_default_text_pack()
-
-        normalised = normalize_language_code(language_code)
-        if normalised and normalised in AVAILABLE_LANGUAGE_CODES:
-            return get_text_pack(normalised)
 
         return get_default_text_pack()
 
