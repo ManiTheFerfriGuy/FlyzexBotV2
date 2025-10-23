@@ -9,13 +9,14 @@ import pytest
 
 import flyzexbot.services.storage as storage_module
 
+from flyzexbot.application_form import ApplicationQuestionDefinition
 from flyzexbot.services.storage import ApplicationResponse, Storage
 from flyzexbot.services.xp import calculate_level_progress
 
 
 def test_admin_management(tmp_path: Path) -> None:
     storage = Storage(tmp_path / "store.json")
-    
+
     async def runner() -> None:
         await storage.load()
 
@@ -36,7 +37,7 @@ def test_admin_management(tmp_path: Path) -> None:
 
 def test_application_flow(tmp_path: Path) -> None:
     storage = Storage(tmp_path / "store.json")
-    
+
     async def runner() -> None:
         await storage.load()
 
@@ -66,10 +67,14 @@ def test_application_flow(tmp_path: Path) -> None:
         status_after_review = storage.get_application_status(11)
         assert status_after_review is not None
         assert status_after_review.status == "approved"
-        reapply_after_approval = await storage.add_application(11, "User", None, "New Answer")
+        reapply_after_approval = await storage.add_application(
+            11, "User", None, "New Answer"
+        )
         assert not reapply_after_approval
 
-        added_with_language = await storage.add_application(12, "User", None, "Answer 3", language_code="en")
+        added_with_language = await storage.add_application(
+            12, "User", None, "Answer 3", language_code="en"
+        )
         assert added_with_language
         application_with_language = storage.get_application(12)
         assert application_with_language is not None
@@ -120,7 +125,9 @@ def test_profile_identifier_lookup(tmp_path: Path) -> None:
         assert profile["username"] == "Founder"
         assert profile["full_name"] == "Guild Founder"
 
-        user_id_from_username, profile_from_username = storage.get_profile_by_identifier("AcePilot")
+        user_id_from_username, profile_from_username = (
+            storage.get_profile_by_identifier("AcePilot")
+        )
         assert user_id_from_username == 202
         assert profile_from_username["username"] == "AcePilot"
         assert profile_from_username["full_name"] == "Ace Pilot"
@@ -219,7 +226,63 @@ def test_application_question_overrides(tmp_path: Path) -> None:
     asyncio.run(runner())
 
 
-def test_snapshot_write_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_application_form_customisation(tmp_path: Path) -> None:
+    storage = Storage(tmp_path / "store.json")
+
+    async def runner() -> None:
+        await storage.load()
+
+        default_form = storage.get_application_form("fa")
+        assert default_form
+
+        new_definition = ApplicationQuestionDefinition(
+            question_id="background",
+            prompt="Tell us about yourself",
+            order=99,
+            required=False,
+        )
+        await storage.upsert_application_question_definition(
+            new_definition, language_code="fa"
+        )
+
+        updated_form = storage.get_application_form("fa")
+        assert any(q.question_id == "background" for q in updated_form)
+
+        replacement = ApplicationQuestionDefinition(
+            question_id="background",
+            prompt="Updated background",
+            order=2,
+        )
+        await storage.upsert_application_question_definition(
+            replacement, language_code="fa"
+        )
+
+        replaced_form = storage.get_application_form("fa")
+        matched = [q for q in replaced_form if q.question_id == "background"]
+        assert matched and matched[0].prompt == "Updated background"
+
+        import_form = [
+            ApplicationQuestionDefinition(
+                question_id="q1", prompt="One", order=1, required=False
+            ),
+            ApplicationQuestionDefinition(
+                question_id="q2", prompt="Two", order=2, required=True
+            ),
+        ]
+        await storage.import_application_form(import_form, language_code="en")
+        imported = storage.get_application_form("en")
+        assert [q.question_id for q in imported] == ["q1", "q2"]
+
+        await storage.reset_application_form(language_code="en")
+        reset_form = storage.get_application_form("en")
+        assert reset_form and reset_form[0].question_id != "q1"
+
+    asyncio.run(runner())
+
+
+def test_snapshot_write_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     storage = Storage(tmp_path / "store.json")
 
     async def runner() -> None:
@@ -294,7 +357,9 @@ def test_sqlite_backup(tmp_path: Path) -> None:
             ],
             language_code="fa",
         )
-        await storage.mark_application_status(2, "review", note="Checking", language_code="fa")
+        await storage.mark_application_status(
+            2, "review", note="Checking", language_code="fa"
+        )
         await storage.add_xp(100, 1, 7)
         await storage.add_cup(100, "Cup", "Desc", ["A", "B"])
         await storage.set_application_question(
@@ -315,7 +380,9 @@ def test_sqlite_backup(tmp_path: Path) -> None:
         cursor.execute("SELECT COUNT(*) FROM application_responses")
         assert cursor.fetchone() == (1,)
 
-        cursor.execute("SELECT score FROM xp WHERE chat_id = ? AND user_id = ?", ("100", "1"))
+        cursor.execute(
+            "SELECT score FROM xp WHERE chat_id = ? AND user_id = ?", ("100", "1")
+        )
         assert cursor.fetchone() == (7,)
 
         cursor.execute(

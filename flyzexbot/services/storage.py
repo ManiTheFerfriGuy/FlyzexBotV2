@@ -11,11 +11,18 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from aiofiles import open as aioopen
 
 from .xp import calculate_level_progress
+from flyzexbot.application_form import (
+    ApplicationQuestionDefinition,
+    build_default_form,
+    ensure_ordering,
+    parse_form,
+    serialise_form,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -126,6 +133,7 @@ class StorageState:
     xp_profiles: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     cups: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
     application_questions: Dict[str, Dict[str, str]] = field(default_factory=dict)
+    application_form: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -164,6 +172,10 @@ class StorageState:
                     for question_id, prompt in questions.items()
                 }
                 for language, questions in self.application_questions.items()
+            },
+            "application_form": {
+                str(language): [dict(entry) for entry in entries]
+                for language, entries in self.application_form.items()
             },
         }
 
@@ -239,6 +251,15 @@ class StorageState:
                 }
                 for language, questions in payload.get("application_questions", {}).items()
                 if isinstance(language, str)
+            },
+            application_form={
+                str(language): [
+                    {str(key): value for key, value in (entry or {}).items()}
+                    for entry in entries
+                    if isinstance(entry, dict)
+                ]
+                for language, entries in payload.get("application_form", {}).items()
+                if isinstance(language, str) and isinstance(entries, list)
             },
         )
 
@@ -543,6 +564,184 @@ class Storage:
         if not code:
             return self._DEFAULT_LANGUAGE_KEY
         return code.lower()
+
+    def _build_default_form(self, language_key: str) -> List[ApplicationQuestionDefinition]:
+        language = None if language_key == self._DEFAULT_LANGUAGE_KEY else language_key
+        return ensure_ordering(build_default_form(language))
+
+    def _load_application_form_definitions(
+        self, language_key: str
+    ) -> List[ApplicationQuestionDefinition]:
+        stored_entries = self._state.application_form.get(language_key)
+        has_explicit_form = language_key in self._state.application_form
+        definitions = parse_form(stored_entries or [])
+
+        if not definitions and not has_explicit_form and language_key != self._DEFAULT_LANGUAGE_KEY:
+            fallback_entries = self._state.application_form.get(self._DEFAULT_LANGUAGE_KEY)
+            fallback_has_form = self._DEFAULT_LANGUAGE_KEY in self._state.application_form
+            fallback_definitions = parse_form(fallback_entries or [])
+            if fallback_definitions or fallback_has_form:
+                definitions = fallback_definitions
+                has_explicit_form = fallback_has_form
+
+        if not definitions and not has_explicit_form:
+            definitions = self._build_default_form(language_key)
+
+        overrides = dict(self._state.application_questions.get(self._DEFAULT_LANGUAGE_KEY, {}))
+        if language_key != self._DEFAULT_LANGUAGE_KEY:
+            overrides.update(self._state.application_questions.get(language_key, {}))
+
+        if overrides:
+            updated: list[ApplicationQuestionDefinition] = []
+            for definition in definitions:
+                prompt_override = overrides.get(definition.question_id)
+                if prompt_override:
+                    updated.append(definition.with_prompt(prompt_override))
+                else:
+                    updated.append(definition)
+            definitions = updated
+
+        return ensure_ordering(definitions)
+
+    def get_application_form(
+        self, language_code: Optional[str] = None
+    ) -> List[ApplicationQuestionDefinition]:
+        language_key = self._normalise_language_key(language_code)
+        return self._load_application_form_definitions(language_key)
+
+    async def upsert_application_question_definition(
+        self,
+        definition: ApplicationQuestionDefinition,
+        *,
+        language_code: Optional[str] = None,
+    ) -> bool:
+        if not isinstance(definition, ApplicationQuestionDefinition):
+            raise TypeError("definition must be an ApplicationQuestionDefinition instance")
+        if not definition.question_id:
+            return False
+
+        language_key = self._normalise_language_key(language_code)
+        async with self._lock:
+            current = parse_form(self._state.application_form.get(language_key, []))
+            replaced = False
+            for index, existing in enumerate(current):
+                if existing.question_id == definition.question_id:
+                    if existing.to_dict() == definition.to_dict():
+                        return False
+                    current[index] = definition
+                    replaced = True
+                    break
+            if not replaced:
+                current.append(definition)
+            normalised = ensure_ordering(current)
+            serialised = serialise_form(normalised)
+            if serialised:
+                self._state.application_form[language_key] = serialised
+            else:
+                self._state.application_form.pop(language_key, None)
+
+        await self.save()
+        LOGGER.info(
+            "application_form_upserted",
+            extra={"question_id": definition.question_id, "language": language_key},
+        )
+        return True
+
+    async def delete_application_question_definition(
+        self,
+        question_id: str,
+        *,
+        language_code: Optional[str] = None,
+    ) -> bool:
+        normalised_id = (question_id or "").strip()
+        if not normalised_id:
+            return False
+
+        language_key = self._normalise_language_key(language_code)
+        async with self._lock:
+            entries = parse_form(self._state.application_form.get(language_key, []))
+            filtered = [
+                definition for definition in entries if definition.question_id != normalised_id
+            ]
+            if len(filtered) == len(entries):
+                return False
+            serialised = serialise_form(ensure_ordering(filtered))
+            if serialised:
+                self._state.application_form[language_key] = serialised
+            else:
+                self._state.application_form.pop(language_key, None)
+            overrides = self._state.application_questions.get(language_key)
+            if overrides and normalised_id in overrides:
+                overrides.pop(normalised_id, None)
+                if not overrides:
+                    self._state.application_questions.pop(language_key, None)
+
+        await self.save()
+        LOGGER.info(
+            "application_form_deleted",
+            extra={"question_id": normalised_id, "language": language_key},
+        )
+        return True
+
+    async def import_application_form(
+        self,
+        definitions: Iterable[ApplicationQuestionDefinition | Dict[str, Any]],
+        *,
+        language_code: Optional[str] = None,
+    ) -> bool:
+        items: List[ApplicationQuestionDefinition] = []
+        for entry in definitions:
+            if isinstance(entry, ApplicationQuestionDefinition):
+                items.append(entry)
+            elif isinstance(entry, dict):
+                items.append(ApplicationQuestionDefinition.from_dict(entry))
+        normalised = ensure_ordering(items)
+        language_key = self._normalise_language_key(language_code)
+
+        async with self._lock:
+            current = parse_form(self._state.application_form.get(language_key, []))
+            if serialise_form(current) == serialise_form(normalised):
+                return False
+            serialised = serialise_form(normalised)
+            if serialised:
+                self._state.application_form[language_key] = serialised
+            else:
+                self._state.application_form.pop(language_key, None)
+
+            existing_overrides = self._state.application_questions.get(language_key)
+            if existing_overrides:
+                question_ids = {definition.question_id for definition in normalised}
+                for key in list(existing_overrides.keys()):
+                    if key not in question_ids:
+                        existing_overrides.pop(key, None)
+                if not existing_overrides:
+                    self._state.application_questions.pop(language_key, None)
+
+        await self.save()
+        LOGGER.info(
+            "application_form_imported",
+            extra={"language": language_key, "count": len(normalised)},
+        )
+        return True
+
+    async def reset_application_form(
+        self,
+        *,
+        language_code: Optional[str] = None,
+    ) -> bool:
+        language_key = self._normalise_language_key(language_code)
+        async with self._lock:
+            had_form = language_key in self._state.application_form
+            self._state.application_form.pop(language_key, None)
+            removed_overrides = self._state.application_questions.pop(language_key, None)
+        if not had_form and not removed_overrides:
+            return False
+        await self.save()
+        LOGGER.info(
+            "application_form_reset",
+            extra={"language": language_key},
+        )
+        return True
 
     def get_application_questions(self, language_code: Optional[str] = None) -> Dict[str, str]:
         language_key = self._normalise_language_key(language_code)

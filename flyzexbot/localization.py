@@ -189,6 +189,31 @@ class TextPack:
     dm_admin_questions_reset_success: str
     dm_admin_questions_cancelled: str
     dm_admin_questions_back_button: str
+    dm_admin_questions_add_button: str
+    dm_admin_questions_import_button: str
+    dm_admin_questions_export_button: str
+    dm_admin_questions_reset_form_button: str
+    dm_admin_questions_delete_button: str
+    dm_admin_questions_list_item: str
+    dm_admin_questions_empty: str
+    dm_admin_questions_add_prompt: str
+    dm_admin_questions_import_prompt: str
+    dm_admin_questions_export_success: str
+    dm_admin_questions_reset_prompt: str
+    dm_admin_questions_reset_language_success: str
+    dm_admin_questions_new_title: str
+    dm_admin_questions_new_prompt: str
+    dm_admin_questions_edit_prompt: str
+    dm_admin_questions_delete_prompt: str
+    dm_admin_questions_delete_keyword: str
+    dm_admin_questions_saved: str
+    dm_admin_questions_import_success: str
+    dm_admin_questions_deleted: str
+    dm_admin_questions_invalid_payload: str
+    dm_admin_questions_not_found: str
+    dm_admin_questions_cancel_keyword: str
+    dm_application_no_questions: str
+    dm_application_required: str
     dm_admin_panel_insights_title: str
     dm_admin_panel_insights_counts: str
     dm_admin_panel_insights_languages: str
@@ -251,9 +276,9 @@ PERSIAN_TEXTS = TextPack(
         "✅ درخواستت رسید! بعد از بررسی بهت خبر می‌دیم.\n"
         "اگه خواستی پیگیری کنی، از دکمه «دیدن وضعیت درخواست» استفاده کن."
     ),
-    dm_application_duplicate=(
-        "ℹ️ درخواستت قبلاً ثبت شده و همین الان هم در حال بررسیه."
-    ),
+    dm_application_no_questions="فرم این زبان فعلاً هیچ سوالی ندارد؛ لطفاً بعداً دوباره امتحان کن.",
+    dm_application_required="لطفاً پاسخی برای این سوال بنویس.",
+    dm_application_duplicate=("ℹ️ درخواستت قبلاً ثبت شده و همین الان هم در حال بررسیه."),
     dm_application_already_member=(
         "ℹ️ تو همین حالا عضو گیلدی و لازم نیست درخواست تازه‌ای بفرستی."
     ),
@@ -311,8 +336,7 @@ PERSIAN_TEXTS = TextPack(
     dm_status_withdrawn="انصراف دادی",
     dm_status_unknown="نامشخص ({status})",
     dm_status_template=(
-        "<b>وضعیت درخواستت:</b> {status}\n"
-        "<i>{last_updated_label}: {updated_at}</i>"
+        "<b>وضعیت درخواستت:</b> {status}\n" "<i>{last_updated_label}: {updated_at}</i>"
     ),
     dm_status_template_with_note=(
         "<b>وضعیت درخواستت:</b> {status}\n"
@@ -420,9 +444,7 @@ PERSIAN_TEXTS = TextPack(
     group_panel_menu_settings_tools_button="باز کردن ابزارهای بیشتر",
     group_panel_menu_settings_help_button="راهنمای تنظیمات",
     error_generic="⚠️ اوه! مشکلی پیش اومد، یک بار دیگه تلاش کن.",
-    glass_panel_caption=(
-        "<i></i>"
-    ),
+    glass_panel_caption=("<i></i>"),
     admin_list_header="👮‍♂️ ادمین‌های فعال:\n{admins}",
     dm_rate_limited="⏳ چند لحظه صبر کن؛ درخواست‌هات پشت سر هم بوده.",
     dm_language_button="تغییر زبان",
@@ -456,31 +478,71 @@ PERSIAN_TEXTS = TextPack(
     dm_admin_panel_add_admin_prompt="شناسه عددی کاربر مدنظر رو بفرست.",
     dm_admin_panel_more_tools_text=(
         "✨ برای مدیریت کامل‌تر می‌تونی از نسخه وب استفاده کنی:\n"
-        "<a href=\"{webapp_url}\">رفتن به داشبورد</a>"
+        '<a href="{webapp_url}">رفتن به داشبورد</a>'
     ),
     dm_admin_panel_more_tools_no_webapp=(
         "ℹ️ هنوز آدرس وب‌اپ مشخص نشده. لطفاً مقدار webapp_url رو در پیکربندی تنظیم کن."
     ),
     dm_admin_questions_menu_title="<b>مدیریت سوال‌های فرم ({language})</b>",
     dm_admin_questions_menu_intro=(
-        "سوالی که می‌خوای ویرایش کنی رو انتخاب کن.\n"
-        "اگه نظرت عوض شد، حین ویرایش کلمه «{reset_keyword}» رو بفرست تا متن اولیه برگرده."
+        "<i>از دکمه‌های زیر برای افزودن، ویرایش یا حذف سوال‌ها استفاده کن."
+        " برای برگرداندن فرم به حالت اولیه، هنگام تأیید عبارت «{reset_keyword}»"
+        " را بفرست.</i>"
     ),
     dm_admin_questions_role_label="سوال نقش (مرحله ۱)",
     dm_admin_questions_goals_label="سوال هدف‌ها (مرحله ۳)",
     dm_admin_questions_availability_label="سوال زمان حضور (مرحله ۴)",
     dm_admin_questions_followup_label_template="سوال تکمیلی ({role})",
-    dm_admin_questions_prompt=(
-        "متن تازه برای «{label}» رو بفرست.\n"
-        "برای برگشت به حالت اولیه، فقط «{reset_keyword}» رو بفرست.\n\n"
-        "متن فعلی:\n{current}"
-    ),
+    dm_admin_questions_prompt="",
     dm_admin_questions_reset_keyword="پیشفرض",
     dm_admin_questions_reset_hint="ارسال «{reset_keyword}» سوال رو به متن اصلی برمی‌گردونه.",
     dm_admin_questions_success="سوال «{label}» به‌روزرسانی شد.",
     dm_admin_questions_reset_success="سوال «{label}» به متن اولیه برگشت.",
     dm_admin_questions_cancelled="ویرایش سوال لغو شد.",
     dm_admin_questions_back_button="بازگشت",
+    dm_admin_questions_add_button="➕ افزودن سوال",
+    dm_admin_questions_import_button="📥 وارد کردن لیست",
+    dm_admin_questions_export_button="📤 خروجی JSON",
+    dm_admin_questions_reset_form_button="♻️ بازنشانی فرم",
+    dm_admin_questions_delete_button="🗑️ حذف",
+    dm_admin_questions_list_item="{order}. <b>{title}</b> — <code>{question_id}</code> ({kind})",
+    dm_admin_questions_empty="هیچ سوال فعالی برای این زبان تعریف نشده است.",
+    dm_admin_questions_add_prompt=(
+        "برای افزودن سوال تازه، JSON زیر را ویرایش و ارسال کن."
+        " مقدار <code>question_id</code> باید یکتا باشد و <code>kind</code> می‌تواند"
+        " text یا choice باشد. برای لغو «{cancel_keyword}» را بفرست."
+        "\n\n<pre>{template}</pre>"
+    ),
+    dm_admin_questions_import_prompt=(
+        "برای جایگزینی کامل فرم، یک آرایه از سوال‌ها بفرست."
+        " ترتیب نمایش از روی فیلد order مشخص می‌شود."
+        " برای لغو «{cancel_keyword}» را بفرست."
+        "\n\n<pre>{template}</pre>"
+    ),
+    dm_admin_questions_export_success="📤 پیکربندی فعلی سوال‌ها:",
+    dm_admin_questions_reset_prompt=(
+        "آیا مطمئنی می‌خوای تمام سوال‌های این زبان به حالت اولیه برگردن؟"
+        " برای تأیید «{reset_keyword}» و برای لغو «{cancel_keyword}» را بفرست."
+    ),
+    dm_admin_questions_reset_language_success="فرم این زبان به حالت پیش‌فرض برگشت.",
+    dm_admin_questions_new_title="عنوان سوال تازه",
+    dm_admin_questions_new_prompt="متن سوال جدید را اینجا بنویس.",
+    dm_admin_questions_edit_prompt=(
+        "برای ویرایش، ساختار زیر را تغییر بده و بفرست."
+        " برای لغو «{cancel_keyword}» را ارسال کن."
+        "\n\n<pre>{template}</pre>"
+    ),
+    dm_admin_questions_delete_prompt=(
+        "برای حذف سوال «{title}» با شناسه <code>{question_id}</code>،"
+        " عبارت «{confirm_keyword}» را بفرست. برای لغو، «{cancel_keyword}» را ارسال کن."
+    ),
+    dm_admin_questions_delete_keyword="تایید",
+    dm_admin_questions_saved="سوال «{label}» ذخیره شد.",
+    dm_admin_questions_import_success="مجموعهٔ جدید با {count} سوال ذخیره شد.",
+    dm_admin_questions_deleted="سوال حذف شد.",
+    dm_admin_questions_invalid_payload="ساختار JSON معتبر نبود؛ لطفاً دوباره بررسی کن.",
+    dm_admin_questions_not_found="سوال موردنظر پیدا نشد.",
+    dm_admin_questions_cancel_keyword="لغو",
     dm_admin_panel_insights_title="<b>📊 داشبورد مدیریتی</b>",
     dm_admin_panel_insights_counts=(
         "• در انتظار بررسی: {pending}\n"
@@ -567,6 +629,8 @@ ENGLISH_TEXTS = TextPack(
         "✅ Got it! Your application is in and we'll let you know once it's reviewed.\n"
         "Use “Check my status” whenever you need an update."
     ),
+    dm_application_no_questions="The application form doesn't have any questions configured for this language yet. Please try again later.",
+    dm_application_required="Please share a response before we can continue.",
     dm_application_duplicate=(
         "ℹ️ We already have an application from you and it's in the review queue."
     ),
@@ -736,9 +800,7 @@ ENGLISH_TEXTS = TextPack(
     group_panel_menu_settings_tools_button="Open advanced tools",
     group_panel_menu_settings_help_button="Settings guide",
     error_generic="⚠️ Oops, something went wrong. Please try again.",
-    glass_panel_caption=(
-        "<i></i>"
-    ),
+    glass_panel_caption=("<i></i>"),
     admin_list_header="👮‍♂️ Current admins:\n{admins}",
     dm_rate_limited="⏳ Easy there! Give it a moment before sending more requests.",
     dm_language_button="Change language",
@@ -775,31 +837,70 @@ ENGLISH_TEXTS = TextPack(
     ),
     dm_admin_panel_more_tools_text=(
         "✨ Want the full toolkit? Hop into the web dashboard:\n"
-        "<a href=\"{webapp_url}\">Open dashboard</a>"
+        '<a href="{webapp_url}">Open dashboard</a>'
     ),
     dm_admin_panel_more_tools_no_webapp=(
         "ℹ️ Add a webapp_url in settings.yaml to enable the web dashboard."
     ),
     dm_admin_questions_menu_title="<b>Manage application questions ({language})</b>",
     dm_admin_questions_menu_intro=(
-        "Pick the question you want to update.\n"
-        "While editing, type “{reset_keyword}” to bring back the default text."
+        "<i>Use the buttons below to add, edit, delete or import questions for this language."
+        " Send “{reset_keyword}” during confirmation to restore the default set.</i>"
     ),
     dm_admin_questions_role_label="Role question (step 1)",
     dm_admin_questions_goals_label="Goals question (step 3)",
     dm_admin_questions_availability_label="Availability question (step 4)",
     dm_admin_questions_followup_label_template="Follow-up question ({role})",
-    dm_admin_questions_prompt=(
-        "Send the new wording for “{label}”.\n"
-        "If you change your mind, send “{reset_keyword}” to restore the default.\n\n"
-        "Current text:\n{current}"
-    ),
+    dm_admin_questions_prompt="",
     dm_admin_questions_reset_keyword="reset",
     dm_admin_questions_reset_hint="Sending “{reset_keyword}” restores this question to its original wording.",
     dm_admin_questions_success="“{label}” has been updated.",
     dm_admin_questions_reset_success="“{label}” is back to the default text.",
     dm_admin_questions_cancelled="Question editing cancelled.",
     dm_admin_questions_back_button="Back",
+    dm_admin_questions_add_button="➕ Add question",
+    dm_admin_questions_import_button="📥 Import list",
+    dm_admin_questions_export_button="📤 Export JSON",
+    dm_admin_questions_reset_form_button="♻️ Reset form",
+    dm_admin_questions_delete_button="🗑️ Delete",
+    dm_admin_questions_list_item="{order}. <b>{title}</b> — <code>{question_id}</code> ({kind})",
+    dm_admin_questions_empty="No questions are configured for this language yet.",
+    dm_admin_questions_add_prompt=(
+        "Send a JSON object describing the new question."
+        " <code>question_id</code> must be unique and <code>kind</code> can be text or choice."
+        " Send “{cancel_keyword}” to cancel."
+        "\n\n<pre>{template}</pre>"
+    ),
+    dm_admin_questions_import_prompt=(
+        "Send a JSON array to replace the entire form."
+        " The <code>order</code> field controls the sequence."
+        " Send “{cancel_keyword}” to cancel."
+        "\n\n<pre>{template}</pre>"
+    ),
+    dm_admin_questions_export_success="📤 Current question configuration:",
+    dm_admin_questions_reset_prompt=(
+        "Reset all questions for this language to their defaults?"
+        " Send “{reset_keyword}” to confirm or “{cancel_keyword}” to cancel."
+    ),
+    dm_admin_questions_reset_language_success="The question set has been restored to the default version.",
+    dm_admin_questions_new_title="New question title",
+    dm_admin_questions_new_prompt="Write the question prompt here.",
+    dm_admin_questions_edit_prompt=(
+        "Update the JSON below and send it back to apply your changes."
+        " Send “{cancel_keyword}” to cancel."
+        "\n\n<pre>{template}</pre>"
+    ),
+    dm_admin_questions_delete_prompt=(
+        "To delete “{title}” (<code>{question_id}</code>) send “{confirm_keyword}”."
+        " Send “{cancel_keyword}” to cancel."
+    ),
+    dm_admin_questions_delete_keyword="confirm",
+    dm_admin_questions_saved="“{label}” has been saved.",
+    dm_admin_questions_import_success="Imported {count} questions successfully.",
+    dm_admin_questions_deleted="The question has been deleted.",
+    dm_admin_questions_invalid_payload="That JSON payload couldn't be parsed. Please double-check it and try again.",
+    dm_admin_questions_not_found="That question wasn't found.",
+    dm_admin_questions_cancel_keyword="cancel",
     dm_admin_panel_insights_title="<b>📊 Admin dashboard</b>",
     dm_admin_panel_insights_counts=(
         "• In review: {pending}\n"
@@ -898,4 +999,3 @@ def get_text_pack(language_code: str | None) -> TextPack:
     if normalised and normalised in _TEXT_PACKS:
         return _TEXT_PACKS[normalised]
     return get_default_text_pack()
-

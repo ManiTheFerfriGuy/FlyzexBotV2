@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
+from ..application_form import ApplicationQuestionDefinition
 from ..localization import TextPack, get_default_text_pack
 
 
@@ -296,57 +297,57 @@ def admin_panel_keyboard(
 def admin_questions_keyboard(
     texts: TextPack | None = None,
     *,
-    role_keys: tuple[str, ...] | None = None,
+    questions: list[ApplicationQuestionDefinition] | None = None,
 ) -> InlineKeyboardMarkup:
     text_pack = texts or get_default_text_pack()
-    buttons: list[list[InlineKeyboardButton]] = [
-        [
-            InlineKeyboardButton(
-                text=text_pack.dm_admin_questions_role_label,
-                callback_data="admin_panel:manage_questions:role_prompt",
-            )
-        ],
-    ]
+    buttons: list[list[InlineKeyboardButton]] = []
 
-    followup_template = getattr(
-        text_pack,
-        "dm_admin_questions_followup_label_template",
-        "{role}",
-    )
-    options = text_pack.dm_application_role_options
-    keys = role_keys or tuple(options.keys())
-    for key in keys:
-        labels = options.get(key, [])
-        role_label = labels[0] if labels else key
+    for index, definition in enumerate(questions or []):
+        label = definition.title or definition.prompt or definition.question_id
+        order_label = f"{definition.order}. {label}" if definition.order else label
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=followup_template.format(role=role_label),
-                    callback_data=f"admin_panel:manage_questions:followup:{key}",
-                )
+                    text=f"✏️ {order_label}",
+                    callback_data=f"admin_panel:manage_questions:edit_index:{index}",
+                ),
+                InlineKeyboardButton(
+                    text=text_pack.dm_admin_questions_delete_button,
+                    callback_data=f"admin_panel:manage_questions:delete_index:{index}",
+                ),
             ]
         )
 
-    buttons.extend(
+    buttons.append(
         [
-            [
-                InlineKeyboardButton(
-                    text=text_pack.dm_admin_questions_goals_label,
-                    callback_data="admin_panel:manage_questions:goals_prompt",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=text_pack.dm_admin_questions_availability_label,
-                    callback_data="admin_panel:manage_questions:availability_prompt",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=text_pack.dm_admin_questions_back_button,
-                    callback_data="admin_panel:manage_questions:back",
-                )
-            ],
+            InlineKeyboardButton(
+                text=text_pack.dm_admin_questions_add_button,
+                callback_data="admin_panel:manage_questions:add",
+            ),
+            InlineKeyboardButton(
+                text=text_pack.dm_admin_questions_import_button,
+                callback_data="admin_panel:manage_questions:import",
+            ),
+        ]
+    )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=text_pack.dm_admin_questions_export_button,
+                callback_data="admin_panel:manage_questions:export",
+            ),
+            InlineKeyboardButton(
+                text=text_pack.dm_admin_questions_reset_form_button,
+                callback_data="admin_panel:manage_questions:reset",
+            ),
+        ]
+    )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=text_pack.dm_admin_questions_back_button,
+                callback_data="admin_panel:manage_questions:back",
+            )
         ]
     )
 
@@ -385,7 +386,9 @@ def admin_management_keyboard(texts: TextPack | None = None) -> InlineKeyboardMa
     )
 
 
-def application_review_keyboard(user_id: int, texts: TextPack | None = None) -> InlineKeyboardMarkup:
+def application_review_keyboard(
+    user_id: int, texts: TextPack | None = None
+) -> InlineKeyboardMarkup:
     text_pack = texts or get_default_text_pack()
     return InlineKeyboardMarkup(
         [
@@ -409,7 +412,9 @@ def application_review_keyboard(user_id: int, texts: TextPack | None = None) -> 
     )
 
 
-def language_options_keyboard(active: str | None, texts: TextPack | None = None) -> InlineKeyboardMarkup:
+def language_options_keyboard(
+    active: str | None, texts: TextPack | None = None
+) -> InlineKeyboardMarkup:
     text_pack = texts or get_default_text_pack()
     rows: list[list[InlineKeyboardButton]] = []
     for code in LANGUAGE_CODES:
@@ -435,7 +440,9 @@ def language_options_keyboard(active: str | None, texts: TextPack | None = None)
     return InlineKeyboardMarkup(rows)
 
 
-def leaderboard_refresh_keyboard(board_type: str, chat_id: int, texts: TextPack | None = None) -> InlineKeyboardMarkup:
+def leaderboard_refresh_keyboard(
+    board_type: str, chat_id: int, texts: TextPack | None = None
+) -> InlineKeyboardMarkup:
     text_pack = texts or get_default_text_pack()
     return InlineKeyboardMarkup(
         [
