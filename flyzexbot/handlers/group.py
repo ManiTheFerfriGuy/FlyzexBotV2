@@ -97,6 +97,7 @@ class GroupHandlers:
             last_award = self._message_cooldowns.get(key)
             if last_award and now - last_award < self.xp_message_cooldown:
                 await self.analytics.record("group.activity_skipped_cooldown")
+                await self._maybe_handle_keyword_interaction(update, context)
                 return
 
         texts = self._get_texts(context, getattr(update.effective_user, "language_code", None))
