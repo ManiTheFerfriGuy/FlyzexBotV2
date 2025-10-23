@@ -532,12 +532,15 @@ PERSIAN_TEXTS = TextPack(
     group_personal_panel_leaderboard_button="لیدربورد",
     group_personal_panel_refresh_button="به‌روزرسانی",
     group_personal_panel_dm_prompt=(
-        "📬 جزئیات کامل رو توی پی‌وی برات فرستادم. XP: <code>{xp}</code> · "
-        "سطح {level} · رتبه {rank} · 🏆 {trophies}"
+        "📣 جزئیات کامل رو همین بالا توی گروه گذاشتم — XP: <code>{xp}</code> · "
+        "سطح {level} · رتبه {rank} · 🏆 {trophies}. این پیام بعد از ۱ دقیقه حذف می‌شه."
     ),
-    group_personal_panel_dm_prompt_no_data="فعلاً هیچ امتیازی برات ندارم؛ بعد از کمی فعالیت دوباره امتحان کن.",
-    group_personal_panel_dm_error="برای ارسال جزئیات باید یک بار به ربات پیام خصوصی بدی.",
-    group_personal_panel_recently_sent="به‌تازگی آخرین وضعیتت رو فرستادم؛ همون پیام رو چک کن.",
+    group_personal_panel_dm_prompt_no_data=(
+        "پیام بالا رو نگاه کن؛ فعلاً هیچ امتیازی برات ندارم و بعد از کمی فعالیت"
+        " دوباره امتحان کن. این پیام تا ۱ دقیقه دیگه حذف می‌شه."
+    ),
+    group_personal_panel_dm_error="نتونستم اطلاعاتت رو توی گروه ارسال کنم؛ بعداً دوباره امتحان کن.",
+    group_personal_panel_recently_sent="همین الان وضعیتت رو در گروه فرستادم؛ همون پیام رو چک کن.",
     language_names={
         "fa": "فارسی",
         "en": "انگلیسی",
@@ -848,12 +851,15 @@ ENGLISH_TEXTS = TextPack(
     group_personal_panel_leaderboard_button="Leaderboard",
     group_personal_panel_refresh_button="Refresh",
     group_personal_panel_dm_prompt=(
-        "📬 I've sent the full details in DM. XP: <code>{xp}</code> · "
-        "Level {level} · Rank {rank} · 🏆 {trophies}"
+        "📣 Shared your stats above for everyone — XP: <code>{xp}</code> · Level {level} · "
+        "Rank {rank} · 🏆 {trophies}. That message disappears in 1 minute."
     ),
-    group_personal_panel_dm_prompt_no_data="I don't have any XP for you yet—talk a bit more and try again.",
-    group_personal_panel_dm_error="I couldn't DM you. Please start a private chat with the bot first.",
-    group_personal_panel_recently_sent="I just shared your latest stats—check the DM.",
+    group_personal_panel_dm_prompt_no_data=(
+        "Check the message above; I still don't have any XP for you, so chat a little "
+        "more and try again. The message will be removed in 1 minute."
+    ),
+    group_personal_panel_dm_error="I couldn't share your stats in the chat right now. Please try again shortly.",
+    group_personal_panel_recently_sent="I just shared your latest stats in the group—check the most recent bot message.",
     language_names={
         "fa": "Persian",
         "en": "English",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from html import escape
 import logging
 import time
@@ -490,6 +491,7 @@ class GroupHandlers:
         menu: str = "root",
     ) -> Tuple[str, InlineKeyboardMarkup]:
         snapshot = self.storage.get_group_snapshot(getattr(chat, "id", 0)) or {}
+
         chat_title_raw = (
             getattr(chat, "title", None)
             or getattr(chat, "full_name", None)
@@ -1363,20 +1365,54 @@ class GroupHandlers:
             return False
 
         try:
-            await bot.send_message(
-                chat_id=getattr(user, "id", 0),
+            sent_message = await bot.send_message(
+                chat_id=getattr(chat, "id", 0),
                 text=panel_text,
                 parse_mode=ParseMode.HTML,
                 reply_markup=markup,
             )
         except Exception as exc:
             LOGGER.error(
-                "Failed to deliver personal panel to %s: %s",
-                getattr(user, "id", 0),
+                "Failed to deliver personal panel in chat %s: %s",
+                getattr(chat, "id", 0),
                 exc,
             )
             return False
+        message_id = getattr(sent_message, "message_id", None)
+        self._schedule_temporary_message(context, chat.id, message_id)
         return True
+
+    def _schedule_temporary_message(
+        self,
+        context: ContextTypes.DEFAULT_TYPE,
+        chat_id: int,
+        message_id: int | None,
+        delay: float = 60.0,
+    ) -> None:
+        if message_id is None:
+            return
+
+        bot = getattr(context, "bot", None)
+        if bot is None or not hasattr(bot, "delete_message"):
+            return
+
+        async def _delete_later() -> None:
+            try:
+                await asyncio.sleep(delay)
+                await bot.delete_message(chat_id=chat_id, message_id=message_id)
+            except Exception as exc:
+                LOGGER.debug(
+                    "Failed to delete temporary message %s in chat %s: %s",
+                    message_id,
+                    chat_id,
+                    exc,
+                )
+
+        application = getattr(context, "application", None)
+        if application and hasattr(application, "create_task"):
+            application.create_task(_delete_later())
+        else:
+            asyncio.create_task(_delete_later())
 
     def _collect_user_trophies(self, chat_id: int, user) -> List[str]:
         try:
